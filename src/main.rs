@@ -1,18 +1,18 @@
 #![no_std]
 #![no_main]
 
-use core::{arch::asm, panic::PanicInfo};
+use cortex_m as _;
+use cortex_m_semihosting::debug;
+use defmt_semihosting as _;
+use panic_halt as _;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
-    loop {
-        unsafe {
-            asm!("wfi");
-        }
+use cortex_m_rt::entry;
+
+#[entry]
+fn main() -> ! {
+    for i in 0..10 {
+        defmt::info!("Hello, world! {}", i);
     }
-}
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+    debug::exit(debug::EXIT_SUCCESS);
     loop {}
 }

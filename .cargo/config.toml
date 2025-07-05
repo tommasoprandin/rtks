@@ -1,2 +1,23 @@
 [build]
 target = "thumbv7em-none-eabihf"
+
+[target.thumbv7em-none-eabihf]
+rustflags = [
+  # cortex-m-rt linker script (will automatically pull in the memory.x file)
+  "-C", "link-arg=-Tlink.x",
+  "-C", "link-arg=--nmagic",
+
+  # add defmt link script
+  "-C", "link-arg=-Tdefmt.x",
+]
+runner = [
+    "sh", "-c", 
+    """qemu-system-arm \
+    -cpu cortex-m4 \
+    -machine netduinoplus2 \
+    -nographic \
+    -semihosting-config enable=on,target=native \ 
+    -kernel $1 | \
+    defmt-print -e $1 --log-format '{L}{s}'""",
+    "--"
+]
