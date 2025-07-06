@@ -3,6 +3,7 @@
 2. An IDE (VS Code with Rust Extension, RustRover, Neovim, ...)
 3. QEMU (see https://www.qemu.org/download/)
 4. `defmt-print` (install with `cargo install defmt-print`)
+5. `flip-link` (install with `cargo install flip-link`)
 
 ## Getting Started
 To compile the project with debug config:
@@ -31,6 +32,6 @@ The example is based on the crates `cortex-m` and `cortex-m-rt` which provide ru
 
 `defmt` is used for logging, it allows for very efficient data transfer and it lets us use the same code between local QEMU testing and actual hardware (just need to change the global logger).
 
-`memory.x` is a super basic linker script, just enough to make this basic example boot and work.
+`memory.x` is a super basic linker script, just enough to make this basic example boot and work. In order to protect from stack overflow undefined behaviour `flip-link` linker is used.
 
 Currently the example is set to compile and run on a Cortex-M4 microprocessor, the machine type is netduinoplus2 (since it is implemented in QEMU). The relevant documents (datasheet, reference manual and programming manual) are in the `datasheets` folder.
