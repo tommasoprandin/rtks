@@ -1,3 +1,6 @@
+[env]
+DEFMT_LOG = "info"
+
 [build]
 target = "thumbv7em-none-eabihf"
 
@@ -16,7 +19,7 @@ runner = [
     -cpu cortex-m4 \
     -machine netduinoplus2 \
     -nographic \
-    -semihosting-config enable=on,target=native \ 
+    -semihosting-config enable=on,target=native \
     -kernel $1 | \
     defmt-print -e $1 --log-format '{L}{s}'""",
     "--"
