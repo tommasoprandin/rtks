@@ -14,14 +14,21 @@ use stm32f4xx_hal as _;
 mod app {
 
     use cortex_m_semihosting::debug;
+    use rtic_sync::channel::{Receiver, Sender};
 
+    const CAPACITY: usize = 5;
     // Shared resources go here
     #[shared]
-    struct Shared {}
+    struct Shared {
+        val: u32,
+    }
 
     // Local resources go here
     #[local]
-    struct Local {}
+    struct Local {
+        s: Sender<'static, u32, CAPACITY>,
+        r: Receiver<'static, u32, CAPACITY>,
+    }
 
     #[init]
     fn init(_: init::Context) -> (Shared, Local) {
@@ -32,14 +39,20 @@ mod app {
         // let token = rtic_monotonics::create_systick_token!();
         // rtic_monotonics::systick::Systick::new(cx.core.SYST, sysclk, token);
 
+        let (s, r) = rtic_sync::make_channel!(u32, CAPACITY);
+
         task1::spawn().ok();
+        task2::spawn().ok();
 
         (
             Shared {
                 // Initialization of shared resources go here
+                val: 0,
             },
             Local {
                 // Initialization of local resources go here
+                s,
+                r,
             },
         )
     }
@@ -47,18 +60,46 @@ mod app {
     // Optional idle, can be removed if not needed.
     #[idle]
     fn idle(_cx: idle::Context) -> ! {
-        defmt::info!("Idle alive");
-        for i in 0..10 {
-            defmt::info!("Idle loop tick {}", i);
-        }
+        defmt::info!("Idling...");
         defmt::info!("Goodbye");
         debug::exit(debug::EXIT_SUCCESS);
         loop {}
     }
 
-    // TODO: Add tasks
-    #[task(priority = 1)]
-    async fn task1(_cx: task1::Context) {
+    #[task(priority = 1, local=[s], shared = [val])]
+    async fn task1(cx: task1::Context) {
+        let mut val = cx.shared.val;
+        let s = cx.local.s;
+
         defmt::info!("Hello from task1!");
+
+        val.lock(|v| {
+            *v = 1;
+            defmt::info!("Shared value is now: {}", v);
+        });
+        
+
+        match s.send(42).await {
+            Ok(_) => defmt::info!("Sent value 42"),
+            Err(e) => defmt::error!("Failed to send value: {}", e),
+        }; 
+    }
+
+    #[task(priority = 2, local = [r], shared = [val])]
+    async fn task2(cx: task2::Context) {
+        let mut val = cx.shared.val;
+        let r = cx.local.r;
+
+        defmt::info!("Hello from task2!");
+
+        val.lock(|v| {
+            *v = 2;
+            defmt::info!("Shared value is now: {}", v);
+        });
+
+        match r.recv().await {
+            Ok(value) => defmt::info!("Received value: {}", value),
+            Err(e) => defmt::error!("Failed to receive value: {}", e),
+        };
     }
 }
