@@ -7,20 +7,28 @@ use panic_halt as _;
 
 use stm32f4xx_hal as _;
 
+mod tasks;
+mod resources;
+
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1]
+    dispatchers = [EXTI0, EXTI1, EXTI2],
 )]
 mod app {
 
     use cortex_m_semihosting::debug;
     use rtic_sync::channel::{Receiver, Sender};
 
+    use crate::tasks::on_call_producer_task;
+    use crate::resources::request_buffer::RequestBuffer;
+
     const CAPACITY: usize = 5;
     // Shared resources go here
     #[shared]
     struct Shared {
         val: u32,
+
+        request_buffer: RequestBuffer,
     }
 
     // Local resources go here
@@ -28,6 +36,9 @@ mod app {
     struct Local {
         s: Sender<'static, u32, CAPACITY>,
         r: Receiver<'static, u32, CAPACITY>,
+
+        // On_Call_Producer
+        current_workload: u32,
     }
 
     #[init]
@@ -43,16 +54,19 @@ mod app {
 
         task1::spawn().ok();
         task2::spawn().ok();
+        on_call_producer::spawn().ok();
 
         (
             Shared {
                 // Initialization of shared resources go here
                 val: 0,
+                request_buffer: RequestBuffer::new(),
             },
             Local {
                 // Initialization of local resources go here
                 s,
                 r,
+                current_workload: 0,
             },
         )
     }
@@ -101,5 +115,10 @@ mod app {
             Ok(value) => defmt::info!("Received value: {}", value),
             Err(e) => defmt::error!("Failed to receive value: {}", e),
         };
+    }
+
+    #[task(priority = 3, local = [current_workload], shared =[request_buffer])]
+    async fn on_call_producer(cx: on_call_producer::Context) {
+        on_call_producer_task::on_call_producer_task(cx);
     }
 }
