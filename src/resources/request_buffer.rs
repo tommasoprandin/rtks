@@ -1,5 +1,6 @@
 use heapless::Vec;
 use core::ops::AddAssign;
+use rtic_sync::signal::{SignalWriter};
 
 const REQUEST_BUFFER_RANGE: usize = 5;
 
@@ -28,17 +29,17 @@ pub struct RequestBuffer {
     insert_index: RequestBufferIndex,
     extract_index: RequestBufferIndex,
     current_size: usize,
-    barrier: bool, // TODO: Signal(bool)
+    barrier_writer: SignalWriter<'static, bool>,
 }
 
 impl RequestBuffer {
-    pub fn new() -> Self {
+    pub fn new(barrier_writer: SignalWriter<'static, bool>) -> Self {
         RequestBuffer {
             my_request_buffer: Vec::new(),
             insert_index: RequestBufferIndex::first(),
             extract_index: RequestBufferIndex::first(),
             current_size: 0,
-            barrier: false,
+            barrier_writer: barrier_writer,
         }
     }
 
@@ -47,7 +48,7 @@ impl RequestBuffer {
             let _ = self.my_request_buffer.push(activation_parameter); // TODO: Handle possible error
             self.insert_index += 1;
             self.current_size += 1;
-            self.barrier = true;
+            self.barrier_writer.write(true);
             return true;
         } else {
             return false;
@@ -55,14 +56,8 @@ impl RequestBuffer {
     }
 
     pub fn extract(&mut self) -> u32 {
-        // TODO: handle barrier as entry guard
-        if !self.barrier {
-            return 1;
-        } else {
-            self.extract_index += 1;
-            self.current_size -= 1;
-            self.barrier = false;
-            return self.my_request_buffer.pop().unwrap();
-        }
+        self.extract_index += 1;
+        self.current_size -= 1;
+        return self.my_request_buffer.pop().unwrap();
     }
 }

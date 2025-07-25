@@ -18,6 +18,7 @@ mod app {
 
     use cortex_m_semihosting::debug;
     use rtic_sync::channel::{Receiver, Sender};
+    use rtic_sync::{make_signal, signal::{SignalReader}};
 
     use crate::tasks::on_call_producer_task;
     use crate::resources::request_buffer::RequestBuffer;
@@ -39,6 +40,7 @@ mod app {
 
         // On_Call_Producer
         current_workload: u32,
+        barrier_reader: SignalReader<'static, bool>,
     }
 
     #[init]
@@ -51,6 +53,7 @@ mod app {
         // rtic_monotonics::systick::Systick::new(cx.core.SYST, sysclk, token);
 
         let (s, r) = rtic_sync::make_channel!(u32, CAPACITY);
+        let (barrier_writer, barrier_reader) = make_signal!(bool);
 
         task1::spawn().ok();
         task2::spawn().ok();
@@ -60,13 +63,14 @@ mod app {
             Shared {
                 // Initialization of shared resources go here
                 val: 0,
-                request_buffer: RequestBuffer::new(),
+                request_buffer: RequestBuffer::new(barrier_writer),
             },
             Local {
                 // Initialization of local resources go here
                 s,
                 r,
                 current_workload: 0,
+                barrier_reader,
             },
         )
     }
@@ -99,9 +103,10 @@ mod app {
         }; 
     }
 
-    #[task(priority = 2, local = [r], shared = [val])]
+    #[task(priority = 2, local = [r], shared = [val, request_buffer])]
     async fn task2(cx: task2::Context) {
         let mut val = cx.shared.val;
+        let mut request_buffer = cx.shared.request_buffer;
         let r = cx.local.r;
 
         defmt::info!("Hello from task2!");
@@ -111,14 +116,18 @@ mod app {
             defmt::info!("Shared value is now: {}", v);
         });
 
+        request_buffer.lock(|buffer| {
+            buffer.deposit(100);
+        });
+
         match r.recv().await {
             Ok(value) => defmt::info!("Received value: {}", value),
             Err(e) => defmt::error!("Failed to receive value: {}", e),
         };
     }
 
-    #[task(priority = 3, local = [current_workload], shared =[request_buffer])]
+    #[task(priority = 3, local = [current_workload, barrier_reader], shared =[request_buffer])]
     async fn on_call_producer(cx: on_call_producer::Context) {
-        on_call_producer_task::on_call_producer_task(cx);
+        on_call_producer_task::on_call_producer_task(cx).await;
     }
 }
