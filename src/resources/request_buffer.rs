@@ -29,11 +29,11 @@ pub struct RequestBuffer {
     insert_index: RequestBufferIndex,
     extract_index: RequestBufferIndex,
     current_size: usize,
-    barrier_writer: SignalWriter<'static, bool>,
+    barrier_writer: SignalWriter<'static, ()>,
 }
 
 impl RequestBuffer {
-    pub fn new(barrier_writer: SignalWriter<'static, bool>) -> Self {
+    pub fn new(barrier_writer: SignalWriter<'static, ()>) -> Self {
         RequestBuffer {
             my_request_buffer: Vec::new(),
             insert_index: RequestBufferIndex::first(),
@@ -48,7 +48,7 @@ impl RequestBuffer {
             let _ = self.my_request_buffer.push(activation_parameter); // TODO: Handle possible error
             self.insert_index += 1;
             self.current_size += 1;
-            self.barrier_writer.write(true);
+            self.barrier_writer.write(());
             return true;
         } else {
             return false;

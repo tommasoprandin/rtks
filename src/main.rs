@@ -17,30 +17,23 @@ mod resources;
 mod app {
 
     use cortex_m_semihosting::debug;
-    use rtic_sync::channel::{Receiver, Sender};
     use rtic_sync::{make_signal, signal::{SignalReader}};
 
     use crate::tasks::on_call_producer_task;
     use crate::resources::request_buffer::RequestBuffer;
 
-    const CAPACITY: usize = 5;
     // Shared resources go here
     #[shared]
     struct Shared {
-        val: u32,
-
         request_buffer: RequestBuffer,
     }
 
     // Local resources go here
     #[local]
     struct Local {
-        s: Sender<'static, u32, CAPACITY>,
-        r: Receiver<'static, u32, CAPACITY>,
-
         // On_Call_Producer
         current_workload: u32,
-        barrier_reader: SignalReader<'static, bool>,
+        barrier_reader: SignalReader<'static, ()>,
     }
 
     #[init]
@@ -52,23 +45,17 @@ mod app {
         // let token = rtic_monotonics::create_systick_token!();
         // rtic_monotonics::systick::Systick::new(cx.core.SYST, sysclk, token);
 
-        let (s, r) = rtic_sync::make_channel!(u32, CAPACITY);
-        let (barrier_writer, barrier_reader) = make_signal!(bool);
+        let (barrier_writer, barrier_reader) = make_signal!(());
 
-        task1::spawn().ok();
-        task2::spawn().ok();
         on_call_producer::spawn().ok();
 
         (
             Shared {
-                // Initialization of shared resources go here
-                val: 0,
+                // Initialization of shared resources
                 request_buffer: RequestBuffer::new(barrier_writer),
             },
             Local {
-                // Initialization of local resources go here
-                s,
-                r,
+                // Initialization of local resources
                 current_workload: 0,
                 barrier_reader,
             },
@@ -82,48 +69,6 @@ mod app {
         defmt::info!("Goodbye");
         debug::exit(debug::EXIT_SUCCESS);
         loop {}
-    }
-
-    #[task(priority = 1, local=[s], shared = [val])]
-    async fn task1(cx: task1::Context) {
-        let mut val = cx.shared.val;
-        let s = cx.local.s;
-
-        defmt::info!("Hello from task1!");
-
-        val.lock(|v| {
-            *v = 1;
-            defmt::info!("Shared value is now: {}", v);
-        });
-        
-
-        match s.send(42).await {
-            Ok(_) => defmt::info!("Sent value 42"),
-            Err(e) => defmt::error!("Failed to send value: {}", e),
-        }; 
-    }
-
-    #[task(priority = 2, local = [r], shared = [val, request_buffer])]
-    async fn task2(cx: task2::Context) {
-        let mut val = cx.shared.val;
-        let mut request_buffer = cx.shared.request_buffer;
-        let r = cx.local.r;
-
-        defmt::info!("Hello from task2!");
-
-        val.lock(|v| {
-            *v = 2;
-            defmt::info!("Shared value is now: {}", v);
-        });
-
-        request_buffer.lock(|buffer| {
-            buffer.deposit(100);
-        });
-
-        match r.recv().await {
-            Ok(value) => defmt::info!("Received value: {}", value),
-            Err(e) => defmt::error!("Failed to receive value: {}", e),
-        };
     }
 
     #[task(priority = 3, local = [current_workload, barrier_reader], shared =[request_buffer])]
