@@ -635,6 +635,7 @@ dependencies = [
  "cortex-m-semihosting",
  "defmt 1.0.1",
  "defmt-semihosting",
+ "heapless",
  "panic-halt",
  "rtic",
  "rtic-sync",
