@@ -21,7 +21,7 @@ runner = [
     "sh", "-c", 
     """qemu-system-arm \
     -cpu cortex-m4 \
-    -machine netduinoplus2 \
+    -machine olimex-stm32-h405 \
     -nographic \
     -semihosting-config enable=on,target=native \
     -kernel $1 | \
