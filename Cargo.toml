@@ -12,7 +12,13 @@ cortex-m-rt = "0.7.5"
 cortex-m-semihosting = "0.5.0"
 defmt = "1.0.1"
 defmt-semihosting = "0.3.0"
-panic-halt = "1.0.0"
+libm = "0.2.15"
 rtic = { version = "2.2.0", features = ["cortex-m", "thumbv7-backend"] }
+rtic-monotonics = { version = "2.1.0", features = [
+  "cortex-m-systick",
+  "stm32f405rg",
+  "stm32_tim2",
+  "defmt",
+] }
 rtic-sync = { version = "1.4.0", features = ["defmt-03"] }
-stm32f4xx-hal = { version = "0.22.1", features = ["stm32f405"] }
+stm32f4xx-hal = { version = "0.22.1", features = ["stm32f405", "defmt"] }
