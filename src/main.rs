@@ -12,8 +12,7 @@ mod resources;
 
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1, EXTI2],
-)]
+    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI5])]
 mod app {
 
     use cortex_m_semihosting::debug;
@@ -31,6 +30,8 @@ mod app {
     // Local resources go here
     #[local]
     struct Local {
+        // Regular_Producer
+        next_time: fugit::TimerInstantU32<Mono>,
         // On_Call_Producer
         current_workload: u32,
         barrier_reader: SignalReader<'static, ()>,
@@ -47,6 +48,7 @@ mod app {
 
         let (barrier_writer, barrier_reader) = make_signal!(());
 
+        regular_producer::spawn().ok();
         on_call_producer::spawn().ok();
 
         (
@@ -56,6 +58,7 @@ mod app {
             },
             Local {
                 // Initialization of local resources
+                next_time: fugit::TimerInstantU32::<Mono>::from_millis(0),
                 current_workload: 0,
                 barrier_reader,
             },
@@ -71,7 +74,12 @@ mod app {
         loop {}
     }
 
-    #[task(priority = 3, local = [current_workload, barrier_reader], shared =[request_buffer])]
+    #[task(priority = 1, local = [next_time], shared = [request_buffer])]
+    async fn regular_producer(cx: regular_producer::Context) {
+        regular_producer_task::regular_producer_task(cx);
+    }
+
+    #[task(priority = 5, local = [current_workload, barrier_reader], shared =[request_buffer])]
     async fn on_call_producer(cx: on_call_producer::Context) {
         on_call_producer_task::on_call_producer_task(cx).await;
     }
