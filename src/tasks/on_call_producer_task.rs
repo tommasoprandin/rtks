@@ -1,18 +1,12 @@
-use crate::{
-    app::{
-        on_call_producer,   
-    },
-    production_workload,
-};
+use crate::production_workload;
+use rtic_sync::signal::SignalReader;
 use rtic::Mutex;
 
-pub async fn on_call_producer_task(cx: on_call_producer::Context<'_>) {    
-    let mut request_buffer = cx.shared.request_buffer;
-    let current_workload = cx.local.current_workload;
-    let barrier_reader = cx.local.barrier_reader;
-
-    // activation_manager.activation_sporadic();
-
+pub async fn on_call_producer_task(
+    request_buffer: &mut impl Mutex<T = crate::resources::request_buffer::RequestBuffer>,
+    current_workload: &mut u32,
+    barrier_reader: &mut SignalReader<'static, ()>
+) -> ! {
     loop {
         defmt::info!("Waiting for sporadic activation through signal...");
         barrier_reader.wait().await;

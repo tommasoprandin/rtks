@@ -153,11 +153,17 @@ mod app {
             cx.local.next_time,
             &mut cx.shared.request_buffer,
             cx.local.activation_log_reader_signaler,
-        ).await;
+        )
+        .await;
     }
 
     #[task(priority = 5, local = [current_workload, barrier_reader], shared =[request_buffer])]
-    async fn on_call_producer(cx: on_call_producer::Context) {
-        tasks::on_call_producer_task::on_call_producer_task(cx).await;
+    async fn on_call_producer(mut cx: on_call_producer::Context) {
+        tasks::on_call_producer_task::on_call_producer_task(
+            &mut cx.shared.request_buffer,
+            cx.local.current_workload,
+            cx.local.barrier_reader,
+        )
+        .await;
     }
 }
