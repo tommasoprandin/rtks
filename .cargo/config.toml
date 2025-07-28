@@ -25,6 +25,6 @@ runner = [
     -nographic \
     -semihosting-config enable=on,target=native \
     -kernel $1 | \
-    defmt-print -e $1 --log-format '{L}{s}'""",
+    defmt-print -e $1 --log-format '[{t:>10} {L:5}] {s}'""",
     "--"
 ]
