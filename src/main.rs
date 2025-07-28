@@ -42,6 +42,8 @@ mod app {
     use rtic_sync::{make_signal, signal::SignalReader};
     use stm32f4xx_hal::rcc::RccExt;
 
+    type Instant = <Mono as Monotonic>::Instant;
+
     // Shared resources go here
     #[shared]
     struct Shared {
@@ -63,10 +65,6 @@ mod app {
         barrier_reader: SignalReader<'static, ()>,
     }
 
-    type Instant = <Mono as Monotonic>::Instant;
-
-
-    // Timer struct
     #[init]
     fn init(ctx: init::Context) -> (Shared, Local) {
         defmt::info!("Init");
@@ -101,10 +99,9 @@ mod app {
         let request_buffer = RequestBuffer::new(barrier_writer);
 
         external_event_server::spawn().expect("Error spawning external event server");
-        producer_task::spawn().expect("Error spawning producer task");
         activation_log_reader::spawn().expect("Error spawning activation log reader task");
-        regular_producer::spawn().ok();
-        on_call_producer::spawn().ok();
+        regular_producer::spawn().expect("Error spawning regular producer task");
+        on_call_producer::spawn().expect("Error spawning on call producer task");
 
         (
             Shared {
@@ -150,23 +147,13 @@ mod app {
         .await;
     }
 
-    #[task(priority = 1, local=[event_signaler, activation_log_reader_signaler])]
-    async fn producer_task(cx: producer_task::Context) -> ! {
-        let events = cx.local.event_signaler;
-        let al_semaphore = cx.local.activation_log_reader_signaler;
-        loop {
-            for _ in 1..=3 {
-                Mono::delay(500.millis()).await;
-                events.signal(());
-            }
-            Mono::delay(1_000.millis()).await;
-            al_semaphore.signal();
-        }
-    }
-
-    #[task(priority = 7, local = [next_time], shared = [request_buffer])]
-    async fn regular_producer(cx: regular_producer::Context) {
-        tasks::regular_producer_task::regular_producer_task(cx).await;
+    #[task(priority = 7, local = [next_time, activation_log_reader_signaler], shared = [request_buffer])]
+    async fn regular_producer(mut cx: regular_producer::Context) {
+        tasks::regular_producer_task::regular_producer_task(
+            cx.local.next_time,
+            &mut cx.shared.request_buffer,
+            cx.local.activation_log_reader_signaler,
+        ).await;
     }
 
     #[task(priority = 5, local = [current_workload, barrier_reader], shared =[request_buffer])]
