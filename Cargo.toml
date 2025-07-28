@@ -22,3 +22,4 @@ rtic-monotonics = { version = "2.1.0", features = [
 ] }
 rtic-sync = { version = "1.4.0", features = ["defmt-03"] }
 stm32f4xx-hal = { version = "0.22.1", features = ["stm32f405", "defmt"] }
+heapless = "0.8.0"

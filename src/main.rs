@@ -24,7 +24,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1, EXTI2]
+    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI4]
 )]
 mod app {
 
@@ -32,6 +32,7 @@ mod app {
         resources::{
             activation_log::ActivationLog,
             event_queue::{EventQueue, EventQueueSignaler, EventQueueWaiter},
+            request_buffer::RequestBuffer,
             task_semaphore::{TaskSemaphore, TaskSemaphoreSignaler, TaskSemaphoreWaiter},
         },
         tasks,
@@ -39,12 +40,14 @@ mod app {
     };
     use cortex_m::asm::nop;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
+    use rtic_sync::{make_signal, signal::SignalReader};
     use stm32f4xx_hal::rcc::RccExt;
 
     // Shared resources go here
     #[shared]
     struct Shared {
         activation_log: ActivationLog,
+        request_buffer: RequestBuffer,
     }
 
     // Local resources go here
@@ -54,6 +57,9 @@ mod app {
         event_waiter: EventQueueWaiter<'static>,
         activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
         activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
+        // On_Call_Producer
+        current_workload: u32,
+        barrier_reader: SignalReader<'static, ()>,
     }
 
     // Timer struct
@@ -85,14 +91,20 @@ mod app {
         let activation_log = ActivationLog::new();
         // Setup activation log reader semaphore
         let (activation_log_reader_waiter, activation_log_reader_signaler) = TaskSemaphore::new();
+        // Setup barrier for on call producer
+        let (barrier_writer, barrier_reader) = make_signal!(());
+        // Setup request buffer
+        let request_buffer = RequestBuffer::new(barrier_writer);
 
         external_event_server::spawn().expect("Error spawning external event server");
         producer_task::spawn().expect("Error spawning producer task");
         activation_log_reader::spawn().expect("Error spawning activatio log reader task");
+        on_call_producer::spawn().ok();
 
         (
             Shared {
                 // Initialization of shared resources go here
+                request_buffer,
                 activation_log,
             },
             Local {
@@ -101,6 +113,8 @@ mod app {
                 event_waiter,
                 activation_log_reader_signaler,
                 activation_log_reader_waiter,
+                current_workload: 0,
+                barrier_reader,
             },
         )
     }
@@ -126,7 +140,8 @@ mod app {
         tasks::activation_log_reader::activation_log_reader(
             cx.local.activation_log_reader_waiter,
             &mut cx.shared.activation_log,
-        ).await;
+        )
+        .await;
     }
 
     #[task(priority = 1, local=[event_signaler, activation_log_reader_signaler])]
@@ -141,5 +156,10 @@ mod app {
             Mono::delay(1_000.millis()).await;
             al_semaphore.signal();
         }
+    }
+
+    #[task(priority = 4, local = [current_workload, barrier_reader], shared =[request_buffer])]
+    async fn on_call_producer(cx: on_call_producer::Context) {
+        tasks::on_call_producer_task::on_call_producer_task(cx).await;
     }
 }
