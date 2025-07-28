@@ -3,7 +3,7 @@ use crate::{
         activation_log::ActivationLog,
         task_semaphore::TaskSemaphoreWaiter,
     },
-    workload,
+    production_workload,
 };
 
 pub async fn activation_log_reader(
@@ -12,7 +12,7 @@ pub async fn activation_log_reader(
 ) -> ! {
     loop {
         semaphore.wait().await;
-        if let Err(err) = workload::small_whetstone(1_000) {
+        if let Err(err) = production_workload::small_whetstone(1_000) {
             defmt::error!(
                 "Error computing whetstone in activation log reader: {}",
                 err

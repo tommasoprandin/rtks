@@ -1,4 +1,9 @@
-use crate::app::on_call_producer;
+use crate::{
+    app::{
+        on_call_producer,   
+    },
+    production_workload,
+};
 use rtic::Mutex;
 
 pub async fn on_call_producer_task(cx: on_call_producer::Context<'_>) {    
@@ -19,7 +24,11 @@ pub async fn on_call_producer_task(cx: on_call_producer::Context<'_>) {
 } 
 
 fn on_call_producer_operation(load: u32) {
-    defmt::info!("On_Call_Producer is processing workload: {}", load);
-    // production_workload.small_whetstone(load);
+    if let Err(err) = production_workload::small_whetstone(load) {
+        defmt::error!(
+                "Error computing whetstone in on call producer operation: {}",
+                err
+            );
+    }
     defmt::info!("End of sporadic activation.");
 }

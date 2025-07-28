@@ -5,7 +5,7 @@ mod auxiliary;
 mod resources;
 mod tasks;
 mod time;
-mod workload;
+mod production_workload;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
@@ -24,8 +24,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI4]
-)]
+    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4])]
 mod app {
 
     use crate::{
@@ -57,10 +56,15 @@ mod app {
         event_waiter: EventQueueWaiter<'static>,
         activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
         activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
+        // Regular_Producer
+        next_time: Instant,
         // On_Call_Producer
         current_workload: u32,
         barrier_reader: SignalReader<'static, ()>,
     }
+
+    type Instant = <Mono as Monotonic>::Instant;
+
 
     // Timer struct
     #[init]
@@ -98,7 +102,8 @@ mod app {
 
         external_event_server::spawn().expect("Error spawning external event server");
         producer_task::spawn().expect("Error spawning producer task");
-        activation_log_reader::spawn().expect("Error spawning activatio log reader task");
+        activation_log_reader::spawn().expect("Error spawning activation log reader task");
+        regular_producer::spawn().ok();
         on_call_producer::spawn().ok();
 
         (
@@ -113,6 +118,7 @@ mod app {
                 event_waiter,
                 activation_log_reader_signaler,
                 activation_log_reader_waiter,
+                next_time: Mono::now(),
                 current_workload: 0,
                 barrier_reader,
             },
@@ -158,7 +164,12 @@ mod app {
         }
     }
 
-    #[task(priority = 4, local = [current_workload, barrier_reader], shared =[request_buffer])]
+    #[task(priority = 7, local = [next_time], shared = [request_buffer])]
+    async fn regular_producer(cx: regular_producer::Context) {
+        tasks::regular_producer_task::regular_producer_task(cx).await;
+    }
+
+    #[task(priority = 5, local = [current_workload, barrier_reader], shared =[request_buffer])]
     async fn on_call_producer(cx: on_call_producer::Context) {
         tasks::on_call_producer_task::on_call_producer_task(cx).await;
     }
