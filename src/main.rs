@@ -6,6 +6,7 @@ mod resources;
 mod tasks;
 mod time;
 mod production_workload;
+mod deadline_miss_handler;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
@@ -36,6 +37,7 @@ mod app {
         },
         tasks,
         time::Mono,
+        deadline_miss_handler::{DeadlineMissHandlerObject, deadline_miss_handler_task},
     };
     use cortex_m::asm::nop;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
@@ -49,6 +51,7 @@ mod app {
     struct Shared {
         activation_log: ActivationLog,
         request_buffer: RequestBuffer,
+        deadline_miss_handler_object_regular_producer: DeadlineMissHandlerObject,
     }
 
     // Local resources go here
@@ -63,6 +66,8 @@ mod app {
         // On_Call_Producer
         current_workload: u32,
         barrier_reader: SignalReader<'static, ()>,
+        // Deadline_Miss_Handler_Regular_Producer
+        regular_producer_period: u32,
     }
 
     #[init]
@@ -97,7 +102,10 @@ mod app {
         let (barrier_writer, barrier_reader) = make_signal!(());
         // Setup request buffer
         let request_buffer = RequestBuffer::new(barrier_writer);
+        // Setup deadline miss handler object for regular producer
+        let deadline_miss_handler_object_regular_producer = DeadlineMissHandlerObject::new("Regular Producer");
 
+        deadline_miss_handler_regular_producer::spawn().expect("Error spawning deadline miss handler for regular producer task");
         external_event_server::spawn().expect("Error spawning external event server");
         activation_log_reader::spawn().expect("Error spawning activation log reader task");
         regular_producer::spawn().expect("Error spawning regular producer task");
@@ -108,6 +116,7 @@ mod app {
                 // Initialization of shared resources go here
                 request_buffer,
                 activation_log,
+                deadline_miss_handler_object_regular_producer,
             },
             Local {
                 // Initialization of local resources go here
@@ -118,6 +127,7 @@ mod app {
                 next_time: Mono::now(),
                 current_workload: 0,
                 barrier_reader,
+                regular_producer_period: 16,
             },
         )
     }
@@ -147,12 +157,13 @@ mod app {
         .await;
     }
 
-    #[task(priority = 7, local = [next_time, activation_log_reader_signaler], shared = [request_buffer])]
+    #[task(priority = 1, local = [next_time, activation_log_reader_signaler], shared = [request_buffer, deadline_miss_handler_object_regular_producer])]
     async fn regular_producer(mut cx: regular_producer::Context) {
         tasks::regular_producer_task::regular_producer_task(
             cx.local.next_time,
             &mut cx.shared.request_buffer,
             cx.local.activation_log_reader_signaler,
+            &mut cx.shared.deadline_miss_handler_object_regular_producer,
         )
         .await;
     }
@@ -166,4 +177,14 @@ mod app {
         )
         .await;
     }
+
+    #[task(priority = 2, local =[regular_producer_period], shared =[deadline_miss_handler_object_regular_producer])]
+    async fn deadline_miss_handler_regular_producer(mut cx: deadline_miss_handler_regular_producer::Context) {
+        deadline_miss_handler_task(
+            &mut cx.shared.deadline_miss_handler_object_regular_producer,
+            cx.local.regular_producer_period,
+        )
+        .await;
+    }
+
 }

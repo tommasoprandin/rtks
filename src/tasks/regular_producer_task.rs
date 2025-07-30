@@ -6,6 +6,7 @@ use crate::{
     time::Mono,
     production_workload,
     auxiliary,
+    deadline_miss_handler::DeadlineMissHandlerObject,
 };
 use rtic_monotonics::{
     Monotonic,
@@ -24,6 +25,7 @@ pub async fn regular_producer_task(
     next_time: &mut Instant,
     request_buffer: &mut impl rtic::Mutex<T = RequestBuffer>,
     activation_log_reader_signaler: &mut TaskSemaphoreSignaler<'_>,
+    deadline_miss_handler_object: &mut impl rtic::Mutex<T = DeadlineMissHandlerObject>,
 ) -> ! {
     loop {
         *next_time = Mono::now() + PERIOD.millis();
@@ -47,6 +49,11 @@ pub async fn regular_producer_task(
         }
         defmt::info!("End of cyclic activation.");
         // END REGULAR_PRODUCER_OPERATION
+
+        // Cancel deadline miss handler
+        deadline_miss_handler_object.lock(|handler_object| {
+            handler_object.cancel_deadline_handler();
+        });
 
         Mono::delay_until(*next_time).await;
     }
