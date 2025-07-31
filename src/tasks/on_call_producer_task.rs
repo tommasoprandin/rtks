@@ -10,6 +10,7 @@ pub async fn on_call_producer_task(
     loop {
         defmt::info!("Waiting for sporadic activation through signal...");
         barrier_reader.wait().await;
+        defmt::info!("Start of sporadic activation");
         request_buffer.lock( |buffer| {
             *current_workload = buffer.extract();
         });

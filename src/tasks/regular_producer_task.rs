@@ -27,6 +27,7 @@ pub async fn regular_producer_task(
 ) -> ! {
     loop {
         *next_time = Mono::now() + PERIOD.millis();
+        defmt::info!("Start of cyclic activation");
 
         // BEGIN REGULAR_PRODUCER_OPERATION
         if let Err(err) = production_workload::small_whetstone(REGULAR_PRODUCER_WORKLOAD) {
