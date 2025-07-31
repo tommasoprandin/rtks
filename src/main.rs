@@ -2,10 +2,10 @@
 #![no_main]
 
 mod auxiliary;
+mod production_workload;
 mod resources;
 mod tasks;
 mod time;
-mod production_workload;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
@@ -56,22 +56,25 @@ mod app {
     struct Local {
         event_signaler: EventQueueSignaler<'static>,
         event_waiter: EventQueueWaiter<'static>,
-        activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
+        // Activation_Log_Reader
         activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
         // Regular_Producer
+        activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
         next_time: Instant,
         // On_Call_Producer
         current_workload: u32,
         barrier_reader: SignalReader<'static, ()>,
     }
 
-    #[init]
-    fn init(ctx: init::Context) -> (Shared, Local) {
+    #[init(local = [
+        activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new()
+    ])]
+    fn init(cx: init::Context) -> (Shared, Local) {
         defmt::info!("Init");
 
         // Extract device from context
-        let peripherals = ctx.device;
-        let core = ctx.core;
+        let peripherals = cx.device;
+        let core = cx.core;
 
         // Clocks setup
         let rcc = peripherals.RCC.constrain();
@@ -88,11 +91,12 @@ mod app {
         Mono::start(core.SYST, clocks.sysclk().to_Hz());
 
         // Setup event queue
-        let (event_waiter, event_signaler) = EventQueue::new();
+        let (event_waiter, event_signaler) = EventQueue::init();
         // Setup activation log
         let activation_log = ActivationLog::new();
         // Setup activation log reader semaphore
-        let (activation_log_reader_waiter, activation_log_reader_signaler) = TaskSemaphore::new();
+        let (activation_log_reader_waiter, activation_log_reader_signaler) =
+            cx.local.activation_log_reader_semaphore.split();
         // Setup barrier for on call producer
         let (barrier_writer, barrier_reader) = make_signal!(());
         // Setup request buffer
