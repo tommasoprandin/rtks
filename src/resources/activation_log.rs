@@ -1,10 +1,8 @@
 use rtic_monotonics::Monotonic;
 
-use crate::time::Mono;
+use crate::time::{Instant, Mono};
 
 const ACTIVATION_MOD: u32 = 100;
-
-type Instant = <Mono as rtic_monotonics::Monotonic>::Instant;
 
 pub struct ActivationLog {
     activation_counter: u32,

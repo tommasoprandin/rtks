@@ -2,11 +2,11 @@
 #![no_main]
 
 mod auxiliary;
+mod deadline;
 mod production_workload;
 mod resources;
 mod tasks;
 mod time;
-mod deadline_miss_handler;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
@@ -29,6 +29,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 mod app {
 
     use crate::{
+        deadline::{self, Deadline, DeadlineMonitor, DeadlineStopper},
         resources::{
             activation_log::ActivationLog,
             event_queue::{EventQueue, EventQueueSignaler, EventQueueWaiter},
@@ -37,7 +38,6 @@ mod app {
         },
         tasks,
         time::Mono,
-        deadline_miss_handler::{DeadlineMissHandlerObject, deadline_miss_handler_task},
     };
     use cortex_m::asm::nop;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
@@ -51,7 +51,6 @@ mod app {
     struct Shared {
         activation_log: ActivationLog,
         request_buffer: RequestBuffer,
-        deadline_miss_handler_object_regular_producer: DeadlineMissHandlerObject,
     }
 
     // Local resources go here
@@ -63,16 +62,18 @@ mod app {
         activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
         // Regular_Producer
         activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
+        regular_producer_deadline_stopper: DeadlineStopper<'static>,
         next_time: Instant,
         // On_Call_Producer
         current_workload: u32,
         barrier_reader: SignalReader<'static, ()>,
-        // Deadline_Miss_Handler_Regular_Producer
-        regular_producer_period: u32,
+        // Deadline_Watchdog
+        deadline_monitors: [DeadlineMonitor<'static>; 1],
     }
 
     #[init(local = [
-        activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new()
+        activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
+        regular_producer_deadline: Deadline = Deadline::new()
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::info!("Init");
@@ -107,9 +108,15 @@ mod app {
         // Setup request buffer
         let request_buffer = RequestBuffer::new(barrier_writer);
         // Setup deadline miss handler object for regular producer
-        let deadline_miss_handler_object_regular_producer = DeadlineMissHandlerObject::new("Regular Producer");
+        let (regular_producer_deadline_stopper, regular_producer_deadline_monitor) =
+            cx.local.regular_producer_deadline.split(
+                "Regular Producer",
+                tasks::regular_producer_task::PERIOD.millis(),
+            );
 
-        deadline_miss_handler_regular_producer::spawn().expect("Error spawning deadline miss handler for regular producer task");
+        let deadline_monitors = [regular_producer_deadline_monitor];
+
+        deadline_miss_handler::spawn().expect("Error spawning deadline miss handler");
         external_event_server::spawn().expect("Error spawning external event server");
         activation_log_reader::spawn().expect("Error spawning activation log reader task");
         regular_producer::spawn().expect("Error spawning regular producer task");
@@ -120,7 +127,6 @@ mod app {
                 // Initialization of shared resources go here
                 request_buffer,
                 activation_log,
-                deadline_miss_handler_object_regular_producer,
             },
             Local {
                 // Initialization of local resources go here
@@ -128,10 +134,11 @@ mod app {
                 event_waiter,
                 activation_log_reader_signaler,
                 activation_log_reader_waiter,
+                regular_producer_deadline_stopper,
                 next_time: Mono::now(),
                 current_workload: 0,
                 barrier_reader,
-                regular_producer_period: 16,
+                deadline_monitors,
             },
         )
     }
@@ -161,13 +168,13 @@ mod app {
         .await;
     }
 
-    #[task(priority = 1, local = [next_time, activation_log_reader_signaler], shared = [request_buffer, deadline_miss_handler_object_regular_producer])]
+    #[task(priority = 1, local = [next_time, activation_log_reader_signaler, regular_producer_deadline_stopper], shared = [request_buffer])]
     async fn regular_producer(mut cx: regular_producer::Context) {
         tasks::regular_producer_task::regular_producer_task(
             cx.local.next_time,
             &mut cx.shared.request_buffer,
             cx.local.activation_log_reader_signaler,
-            &mut cx.shared.deadline_miss_handler_object_regular_producer,
+            cx.local.regular_producer_deadline_stopper,
         )
         .await;
     }
@@ -182,13 +189,8 @@ mod app {
         .await;
     }
 
-    #[task(priority = 2, local =[regular_producer_period], shared =[deadline_miss_handler_object_regular_producer])]
-    async fn deadline_miss_handler_regular_producer(mut cx: deadline_miss_handler_regular_producer::Context) {
-        deadline_miss_handler_task(
-            &mut cx.shared.deadline_miss_handler_object_regular_producer,
-            cx.local.regular_producer_period,
-        )
-        .await;
+    #[task(priority = 2, local =[deadline_monitors])]
+    async fn deadline_miss_handler(cx: deadline_miss_handler::Context) -> ! {
+        deadline::deadline_watchdog(cx.local.deadline_monitors).await;
     }
-
 }
