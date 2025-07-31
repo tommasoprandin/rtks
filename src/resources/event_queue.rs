@@ -1,36 +1,34 @@
-use core::sync::atomic::{AtomicU8, Ordering};
+use core::{
+    mem::MaybeUninit,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
 
 pub type EventType = ();
-pub struct EventQueue {}
+pub struct EventQueue;
 
-static mut EVENT_QUEUE: Option<Signal<EventType>> = None;
-static INITIALIZED: AtomicU8 = AtomicU8::new(0);
+static mut EVENT_QUEUE: MaybeUninit<Signal<EventType>> = MaybeUninit::uninit();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 impl EventQueue {
+    // The hint is safe since the implementation never leaks the reference out and its used atomically
     #[allow(static_mut_refs)]
-    pub fn new() -> (EventQueueWaiter<'static>, EventQueueSignaler<'static>) {
-        let (sender, receiver) = unsafe {
-            // SAFETY: The CAS operation ensure mutual exclusive single initialization, the static internal channel is not accessible from the outside directly.
-            // We want at most once and atomic semantics
-            match INITIALIZED.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire) {
-                Ok(_) => {
-                    if EVENT_QUEUE.is_none() {
-                        EVENT_QUEUE = Some(Signal::new());
-                    }
-                    EVENT_QUEUE.as_ref().unwrap().split()
-                }
-                Err(_) => {
-                    defmt::panic!(
-                        "EventQueue::new() called multiple times - only one initialization allowed"
-                    );
-                }
-            }
+    pub fn init() -> (EventQueueWaiter<'static>, EventQueueSignaler<'static>) {
+        let (writer, reader) = if INITIALIZED
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+        {
+            // SAFETY: The CAS operation guarantees at most one initialization even with competing threads, hence if we reach this branch we
+            // are guaranteed to be the only initializers of the static signal, and splitting is safe.
+            unsafe { EVENT_QUEUE.write(Signal::new()).split() }
+        } else {
+            defmt::panic!("Multiple EventQueue initialization");
         };
+
         (
-            EventQueueWaiter { inner: receiver },
-            EventQueueSignaler { inner: sender },
+            EventQueueWaiter { inner: reader },
+            EventQueueSignaler { inner: writer },
         )
     }
 }
@@ -45,6 +43,7 @@ impl<'a> EventQueueWaiter<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct EventQueueSignaler<'a> {
     inner: SignalWriter<'a, EventType>,
 }
