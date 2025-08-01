@@ -1,124 +1,73 @@
-use core::u32;
+use crate::time::{Mono, Instant};
+use rtic_monotonics::{
+    Monotonic, 
+    fugit::ExtU32
+};
 
-use rtic_monotonics::{Monotonic, fugit::ExtU32 as _};
-use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
+//const ZERO_TIME: u32 = 0;
 
-use crate::time::{Duration, Instant, Mono};
-
-pub struct Deadline {
-    signal: Signal<u32>,
-}
-
-impl Deadline {
-    pub const fn new() -> Self {
-        Self {
-            signal: Signal::new(),
-        }
-    }
-
-    pub fn split(
-        &self,
-        tag: &'static str,
-        period: Duration,
-    ) -> (DeadlineStopper<'_>, DeadlineMonitor<'_>) {
-        let (writer, reader) = self.signal.split();
-        (
-            DeadlineStopper {
-                signal: writer,
-                activation: 0,
-            },
-            DeadlineMonitor {
-                tag,
-                period,
-                misses: 0,
-                signal: reader,
-                next: None,
-                activation: 0,
-            },
-        )
-    }
-}
-
-pub struct DeadlineStopper<'a> {
-    signal: SignalWriter<'a, u32>,
-    activation: u32,
-}
-
-impl<'a> DeadlineStopper<'a> {
-    pub fn done(&mut self) {
-        self.activation += 1;
-        self.signal.write(self.activation);
-    }
-}
-pub struct DeadlineMonitor<'a> {
-    tag: &'static str,
-    period: Duration,
+// SHARED RESOURCE FOR HANDLING DEADLINE
+pub struct DeadlineObject {
+    name: &'static str,
+    cancelled: bool,
     misses: u32,
-    signal: SignalReader<'a, u32>,
-    next: Option<Instant>,
-    activation: u32,
+    activations: u32,
 }
 
-impl<'a> DeadlineMonitor<'a> {
-    pub fn schedule(&mut self, start: Instant) {
-        self.next = Some(start + self.period);
-        self.activation += 1;
-        let _ = self.signal.try_read();
+impl DeadlineObject {
+    pub fn new(
+    name: &'static str,
+    ) -> Self {
+        return DeadlineObject {
+            name,
+            cancelled: false, 
+            misses: 0,
+            activations: 1
+        };
     }
 
-    pub fn check_and_reschedule(&mut self, now: Instant) {
-        if let Some(deadline) = self.next {
-            // If now >= deadline the alarm rang => we need to check
-            if now >= deadline {
-                match self.signal.try_read() {
-                    Some(seq) => {
-                        if seq != self.activation {
-                            defmt::warn!("Deadline miss for {}", self.tag);
-                            self.misses += 1;
-                        }
-                    }
-                    None => {
-                        defmt::warn!("Deadline miss for {}", self.tag);
-                        self.misses += 1;
-                    }
-                }
-                self.next = Some(now + self.period);
-                self.activation += 1;
-            }
+    pub fn deadline_miss_detected(&mut self) {
+        if !self.cancelled {
+            self.misses += 1;
+            defmt::error!(
+                "Deadline miss detected for task '{}'. Misses: {}, Activations: {}",
+                self.name,
+                self.misses,
+                self.activations
+            );
         } else {
-            defmt::warn!("Deadline {} was not scheduled", self.tag);
+            defmt::info!(
+                "Deadline for task '{}' was cancelled",
+                self.name
+            );
         }
+        // reset deadline object
+        self.cancelled = false;
+        self.activations += 1;
+    }
+
+    pub fn cancel_deadline(&mut self, activation_ID: u32) {
+        if activation_ID == self.activations {
+            self.cancelled = true;
+        } 
+        // else ignore it, too late to cancel
     }
 }
 
-pub async fn deadline_watchdog(monitors: &mut [DeadlineMonitor<'_>]) -> ! {
-    // Init
-    if monitors.is_empty() {
-        defmt::info!("No deadline monitoring");
-        loop {
-            Mono::delay(u32::MAX.millis()).await;
-        }
-    } else {
-        let start = Instant::from_ticks(0);
-
-        for monitor in monitors.iter_mut() {
-            monitor.schedule(start);
-        }
-    }
-
+// DEADLINE MISS HANDLER TASK
+pub async fn deadline_watchdog(
+    deadline_object: &mut impl rtic::Mutex<T = DeadlineObject>,
+    next_deadline: &mut Instant, 
+    period: u32,
+) -> ! {
     // Watchdog control loop
     loop {
-        let earliest = monitors
-            .iter()
-            .filter_map(|m| m.next)
-            .min()
-            .expect("There should be an earliest deadline after init");
-        defmt::debug!("Earliest = {}", earliest);
-        Mono::delay_until(earliest).await;
+        Mono::delay_until(*next_deadline).await;
 
-        let now = Mono::now();
-        for monitor in monitors.iter_mut() {
-            monitor.check_and_reschedule(now);
-        }
+        deadline_object.lock(|deadline_object| {
+            deadline_object.deadline_miss_detected();
+        });
+
+        *next_deadline += period.millis();
     }
 }

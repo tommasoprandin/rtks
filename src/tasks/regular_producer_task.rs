@@ -1,15 +1,13 @@
 use crate::{
     auxiliary,
-    deadline::DeadlineStopper,
+    deadline::DeadlineObject,
     production_workload,
     resources::{request_buffer::RequestBuffer, task_semaphore::TaskSemaphoreSignaler},
-    time::Mono,
+    time::{Mono, Instant},
 };
 use rtic_monotonics::{Monotonic, fugit::ExtU32};
 
-type Instant = <Mono as Monotonic>::Instant;
-
-pub const PERIOD: u32 = 1000;
+pub const PERIOD: u32 = 1_000;
 
 const REGULAR_PRODUCER_WORKLOAD: u32 = 756;
 const ON_CALL_PRODUCER_WORKLOAD: u32 = 278;
@@ -19,10 +17,12 @@ pub async fn regular_producer_task(
     next_time: &mut Instant,
     request_buffer: &mut impl rtic::Mutex<T = RequestBuffer>,
     activation_log_reader_signaler: &mut TaskSemaphoreSignaler<'_>,
-    deadline_stopper: &mut DeadlineStopper<'_>,
+    deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
+    activation_count: &mut u32,
 ) -> ! {
     loop {
         *next_time = Mono::now() + PERIOD.millis();
+        *activation_count += 1;
         defmt::info!("Start of cyclic activation");
 
         // BEGIN REGULAR_PRODUCER_OPERATION
@@ -42,12 +42,13 @@ pub async fn regular_producer_task(
         if auxiliary::check_due() {
             activation_log_reader_signaler.signal();
         }
-        // Mono::delay(1000.millis()).await;
         defmt::info!("End of cyclic activation.");
         // END REGULAR_PRODUCER_OPERATION
 
-        // Cancel deadline miss handler
-        deadline_stopper.done();
+        // Cancel deadline
+        deadline.lock( |deadline| {
+            deadline.cancel_deadline(*activation_count);
+        });
 
         Mono::delay_until(*next_time).await;
     }
