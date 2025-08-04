@@ -10,6 +10,7 @@ Processing_Resource (
 		Period => 0.001000),
 	Speed_Factor => 1.00);
 
+
 Scheduler (
 	Type => Primary_Scheduler,
 	Name => fps,
@@ -20,6 +21,34 @@ Scheduler (
 		Max_Priority => 240,
 		Min_Priority => 1));
 
+
+Scheduling_Server (
+    Type => Regular,
+    Name => activation_log_reader,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 11,
+        Preassigned => YES),
+    Scheduler => fps);
+
+Scheduling_Server (
+    Type => Regular,
+    Name => external_event_server,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 3,
+        Preassigned => YES),
+    Scheduler => fps);
+
+Scheduling_Server (
+    Type => Regular,
+    Name => on_call_producer,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 5,
+        Preassigned => YES),
+    Scheduler => fps);
+
 Scheduling_Server (
 	Type => Regular,
 	Name => regular_producer,
@@ -29,11 +58,88 @@ Scheduling_Server (
 		Preassigned => YES),
 	Scheduler => fps);
 
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => activation_log,
+    Ceiling => 11,
+    Preassigned => YES);
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => event_queue,
+    Ceiling => 241,
+    Preassigned => YES);
+
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
 	Name => request_buffer,
-	Ceiling => 13,
+	Ceiling => 7,
 	Preassigned => YES);
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => task_semaphore,
+    Ceiling => 7,
+    Preassigned => YES);
+
+
+Operation (
+    Type => Simple,
+    Name => rp_small_whetstone,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => alr_small_whetstone,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => ocp_small_whetstone,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => due_activation,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => check_due,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => rp_activation_calculations,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => alr_signal,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Shared_Resources_To_Lock =>
+        ( task_semaphore),
+    Shared_Resources_To_Unlock =>
+        ( task_semaphore));
+
+Operation (
+	Type => Simple,
+	Name => al_write,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( activation_log),
+	Shared_Resources_To_Unlock =>
+		( activation_log));
+
+Operation (
+	Type => Simple,
+	Name => al_read,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( activation_log),
+	Shared_Resources_To_Unlock =>
+		( activation_log));
 
 Operation (
 	Type => Simple,
@@ -43,6 +149,36 @@ Operation (
 		( request_buffer),
 	Shared_Resources_To_Unlock =>
 		( request_buffer));
+
+Operation ( 
+    Type => Enclosing,
+    Name => ocp_start,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rb_deposit ));
+
+Operation (
+	Type => Simple,
+	Name => rb_extract,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( request_buffer),
+	Shared_Resources_To_Unlock =>
+		( request_buffer));
+
+Operation (
+    Type => Composite,
+    Name => rp_operation,
+    Composite_Operation_List =>
+        ( rp_activation_calculations,
+        put_line,
+        rp_small_whetstone,
+        due_activation,
+        ocp_start,
+        check_due,
+        alr_signal,
+        put_line));
+
 
 Transaction (
 	Type => regular,
@@ -64,5 +200,5 @@ Transaction (
 		( (Type => System_Timed_Activity,
 			Input_Event => e1,
 			Output_Event => rpo1,
-			Activity_Operation => rb_deposit, 
+			Activity_Operation => rb_operation, 
 			Activity_Server => regular_producer))); 

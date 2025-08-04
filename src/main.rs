@@ -163,7 +163,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 1, local = [regular_producer_next_time, activation_log_reader_signaler, regular_producer_activation_count], shared = [request_buffer, regular_producer_deadline])]
+    #[task(priority = 7, local = [regular_producer_next_time, activation_log_reader_signaler, regular_producer_activation_count], shared = [request_buffer, regular_producer_deadline])]
     async fn regular_producer(mut cx: regular_producer::Context) {
         tasks::regular_producer_task::regular_producer_task(
             cx.local.regular_producer_next_time,
@@ -185,7 +185,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 2, local = [regular_producer_next_deadline, regular_producer_period], shared =[regular_producer_deadline])]
+    #[task(priority = 12, local = [regular_producer_next_deadline, regular_producer_period], shared =[regular_producer_deadline])]
     async fn regular_producer_deadline_miss_handler(mut cx: regular_producer_deadline_miss_handler::Context) -> ! {
         deadline_watchdog(
             &mut cx.shared.regular_producer_deadline,
