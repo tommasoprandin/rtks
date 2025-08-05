@@ -1,0 +1,4 @@
+Operation (
+    Type => Simple,
+    Name => alr_small_whetstone,
+    Worst_Case_Execution_Time => 2.000E-06);

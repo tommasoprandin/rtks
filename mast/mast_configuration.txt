@@ -10,17 +10,14 @@ Processing_Resource (
 		Period => 0.001000),
 	Speed_Factor => 1.00);
 
-
-Scheduler (
-	Type => Primary_Scheduler,
-	Name => fps,
-	Host => cpu,
-	Policy =>
-		( Type => Fixed_Priority,
-		Worst_Context_Switch => 3.090E-06,
-		Max_Priority => 240,
-		Min_Priority => 1));
-
+Scheduling_Server (
+    Type => Regular,
+    Name => on_call_producer,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 5,
+        Preassigned => YES),
+    Scheduler => fps);
 
 Scheduling_Server (
     Type => Regular,
@@ -32,24 +29,6 @@ Scheduling_Server (
     Scheduler => fps);
 
 Scheduling_Server (
-    Type => Regular,
-    Name => external_event_server,
-    Server_Sched_Parameters =>
-        ( Type => Fixed_Priority_Policy,
-        The_Priority => 3,
-        Preassigned => YES),
-    Scheduler => fps);
-
-Scheduling_Server (
-    Type => Regular,
-    Name => on_call_producer,
-    Server_Sched_Parameters =>
-        ( Type => Fixed_Priority_Policy,
-        The_Priority => 5,
-        Preassigned => YES),
-    Scheduler => fps);
-
-Scheduling_Server (
 	Type => Regular,
 	Name => regular_producer,
 	Server_Sched_Parameters =>
@@ -57,32 +36,6 @@ Scheduling_Server (
 		The_Priority => 7,
 		Preassigned => YES),
 	Scheduler => fps);
-
-
-Shared_Resource (
-    Type => Immediate_Ceiling_Resource,
-    Name => activation_log,
-    Ceiling => 11,
-    Preassigned => YES);
-
-Shared_Resource (
-    Type => Immediate_Ceiling_Resource,
-    Name => event_queue,
-    Ceiling => 241,
-    Preassigned => YES);
-
-Shared_Resource (
-	Type => Immediate_Ceiling_Resource,
-	Name => request_buffer,
-	Ceiling => 7,
-	Preassigned => YES);
-
-Shared_Resource (
-    Type => Immediate_Ceiling_Resource,
-    Name => task_semaphore,
-    Ceiling => 7,
-    Preassigned => YES);
-
 
 Operation (
     Type => Simple,
@@ -179,7 +132,6 @@ Operation (
         alr_signal,
         put_line));
 
-
 Transaction (
 	Type => regular,
 	Name => rp_transaction,
@@ -202,3 +154,47 @@ Transaction (
 			Output_Event => rpo1,
 			Activity_Operation => rb_operation, 
 			Activity_Server => regular_producer))); 
+
+Scheduling_Server (
+    Type => Regular,
+    Name => external_event_server,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 3,
+        Preassigned => YES),
+    Scheduler => fps);
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => activation_log,
+    Ceiling => 11,
+    Preassigned => YES);
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => event_queue,
+    Ceiling => 241,
+    Preassigned => YES);
+
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => request_buffer,
+	Ceiling => 7,
+	Preassigned => YES);
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => task_semaphore,
+    Ceiling => 7,
+    Preassigned => YES);
+
+Scheduler (
+	Type => Primary_Scheduler,
+	Name => fps,
+	Host => cpu,
+	Policy =>
+		( Type => Fixed_Priority,
+		Worst_Context_Switch => 3.090E-06,
+		Max_Priority => 240,
+		Min_Priority => 1));
+

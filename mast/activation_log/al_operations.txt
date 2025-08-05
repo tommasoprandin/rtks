@@ -1,0 +1,17 @@
+Operation (
+	Type => Simple,
+	Name => al_write,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( activation_log),
+	Shared_Resources_To_Unlock =>
+		( activation_log));
+
+Operation (
+	Type => Simple,
+	Name => al_read,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( activation_log),
+	Shared_Resources_To_Unlock =>
+		( activation_log));

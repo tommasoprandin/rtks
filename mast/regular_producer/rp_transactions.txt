@@ -1,0 +1,22 @@
+Transaction (
+	Type => regular,
+	Name => rp_transaction,
+	External_Events =>
+		( ( Type => Periodic,
+				Name => e1,
+				Period => 1.000,
+				Max_Jitter => 0.000,
+				Phase => 0.000)),
+	Internal_Events =>
+		( ( Type => Regular,
+				Name => rpo1,
+				Timing_Requirements =>
+					( Type => Hard_Global_Deadline,
+						Deadline => 0.500000,
+						Referenced_Event => e1))),
+	Event_Handlers =>
+		( (Type => System_Timed_Activity,
+			Input_Event => e1,
+			Output_Event => rpo1,
+			Activity_Operation => rb_operation, 
+			Activity_Server => regular_producer))); 

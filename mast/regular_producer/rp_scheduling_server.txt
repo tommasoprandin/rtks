@@ -1,0 +1,8 @@
+Scheduling_Server (
+	Type => Regular,
+	Name => regular_producer,
+	Server_Sched_Parameters =>
+		( Type => Fixed_Priority_Policy,
+		The_Priority => 7,
+		Preassigned => YES),
+	Scheduler => fps);

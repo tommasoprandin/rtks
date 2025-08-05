@@ -1,0 +1,9 @@
+Scheduler (
+	Type => Primary_Scheduler,
+	Name => fps,
+	Host => cpu,
+	Policy =>
+		( Type => Fixed_Priority,
+		Worst_Context_Switch => 3.090E-06,
+		Max_Priority => 240,
+		Min_Priority => 1));

@@ -1,0 +1,8 @@
+Scheduling_Server (
+    Type => Regular,
+    Name => activation_log_reader,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 11,
+        Preassigned => YES),
+    Scheduler => fps);

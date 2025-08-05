@@ -1,0 +1,11 @@
+Processing_Resource (
+	Type => Regular_Processor,
+	Name => cpu,
+	Max_Interrupt_Priority => 255,
+	Min_Interrupt_Priority => 241,
+	Worst_ISR_Switch => 2.578E-06,
+	System_Timer =>
+		( Type => Ticker,
+		Worst_Overhead => 3.844E-06,
+		Period => 0.001000),
+	Speed_Factor => 1.00);

@@ -1,0 +1,8 @@
+Scheduling_Server (
+    Type => Regular,
+    Name => external_event_server,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 3,
+        Preassigned => YES),
+    Scheduler => fps);

@@ -1,0 +1,5 @@
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => request_buffer,
+	Ceiling => 7,
+	Preassigned => YES);

@@ -1,0 +1,5 @@
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => activation_log,
+    Ceiling => 11,
+    Preassigned => YES);
