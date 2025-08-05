@@ -33,6 +33,7 @@ pub async fn regular_producer_task(
             );
         }
         if auxiliary::due_activation(ACTIVATION_CONDITION) {
+            // on_call_producer activation
             request_buffer.lock(|buffer| {
                 if !buffer.deposit(ON_CALL_PRODUCER_WORKLOAD) {
                     defmt::info!("Failed sporadic activation.");
