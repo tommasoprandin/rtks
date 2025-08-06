@@ -1,0 +1,14 @@
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => ocp_deadline,
+	Ceiling => 241,
+	Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => ocp_deadline_canceal_simple,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( ocp_deadline ),
+	Shared_Resources_To_Unlock =>
+		( ocp_deadline ));

@@ -30,24 +30,27 @@ Operation (
     Name => alr_signal,
     Worst_Case_Execution_Time => 2.000E-06);
 
-Operation (
-    Type => Simple,
-    Name => cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06);
+Operation ( 
+    Type => Enclosing,
+    Name => rp_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rp_cancel_deadline_simple ));
 
 Operation (
     Type => Composite,
     Name => rp_operation,
     Composite_Operation_List =>
-        ( rp_activation_calculations,
-        put_line,
-        rp_small_whetstone,
+        (rp_small_whetstone,
         due_activation,
-        ocp_start,
+        ocp_activation,
         check_due,
         alr_signal,
-        put_line,
-        cancel_deadline));
+        put_line));
 
-
-
+Operation (
+    Type => Composite,
+    Name => rp_job,
+    Composite_Operation_List =>
+        (rb_operation,
+        rp_cancel_deadline));

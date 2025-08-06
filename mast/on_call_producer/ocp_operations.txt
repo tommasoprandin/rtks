@@ -1,4 +1,33 @@
 Operation (
+    Type => Enclosing,
+    Name => extract_workload,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rb_extract ));
+
+Operation (
     Type => Simple,
     Name => ocp_small_whetstone,
     Worst_Case_Execution_Time => 2.000E-06);
+
+Operation ( 
+    Type => Enclosing,
+    Name => ocp_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ocp_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => ocp_operation,
+    Composite_Operation_List =>
+        (ocp_small_whetstone,
+        put_line));
+
+Operation (
+    Type => Composite,
+    Name => ocp_job,
+    Composite_Operation_List =>
+        ( extract_workload,
+        ocp_operation,
+        ocp_cancel_deadline));

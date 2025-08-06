@@ -10,6 +10,93 @@ Processing_Resource (
 		Period => 0.001000),
 	Speed_Factor => 1.00);
 
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => request_buffer,
+	Ceiling => 7,
+	Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => rb_deposit,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( request_buffer),
+	Shared_Resources_To_Unlock =>
+		( request_buffer));
+
+Operation (
+	Type => Simple,
+	Name => rb_extract,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( request_buffer),
+	Shared_Resources_To_Unlock =>
+		( request_buffer));
+
+Operation (
+    Type => Simple,
+    Name => put_line,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Shared_Resource (
+    Type => Immediate_Ceiling_Resource,
+    Name => activation_log,
+    Ceiling => 11,
+    Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => al_write,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( activation_log),
+	Shared_Resources_To_Unlock =>
+		( activation_log));
+
+Operation (
+	Type => Simple,
+	Name => al_read,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( activation_log),
+	Shared_Resources_To_Unlock =>
+		( activation_log));
+
+Operation (
+    Type => Enclosing,
+    Name => extract_workload,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rb_extract ));
+
+Operation (
+    Type => Simple,
+    Name => ocp_small_whetstone,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation ( 
+    Type => Enclosing,
+    Name => ocp_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ocp_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => ocp_operation,
+    Composite_Operation_List =>
+        (ocp_small_whetstone,
+        put_line));
+
+Operation (
+    Type => Composite,
+    Name => ocp_job,
+    Composite_Operation_List =>
+        ( extract_workload,
+        ocp_operation,
+        ocp_cancel_deadline));
+
 Scheduling_Server (
     Type => Regular,
     Name => on_call_producer,
@@ -18,6 +105,64 @@ Scheduling_Server (
         The_Priority => 5,
         Preassigned => YES),
     Scheduler => fps);
+
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => ocp_deadline,
+	Ceiling => 241,
+	Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => ocp_deadline_canceal_simple,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( ocp_deadline ),
+	Shared_Resources_To_Unlock =>
+		( ocp_deadline ));
+
+Operation (
+    Type => Simple,
+    Name => alr_small_whetstone,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Enclosing,
+    Name => alr_read,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( al_read ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => alr_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( alr_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => alr_job,
+    Composite_Operation_List =>
+        ( alr_small_whetstone,
+        alr_read,
+        put_line,
+        alr_cancel_deadline));
+
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => alr_deadline,
+	Ceiling => 241,
+	Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => alr_deadline_canceal_simple,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( alr_deadline ),
+	Shared_Resources_To_Unlock =>
+		( alr_deadline ));
 
 Scheduling_Server (
     Type => Regular,
@@ -39,23 +184,25 @@ Scheduling_Server (
 
 Operation (
     Type => Simple,
+    Name => rp_activation_calculations,
+    Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Simple,
     Name => rp_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation (
-    Type => Simple,
-    Name => alr_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation (
-    Type => Simple,
-    Name => ocp_small_whetstone,
     Worst_Case_Execution_Time => 2.000E-06);
 
 Operation (
     Type => Simple,
     Name => due_activation,
     Worst_Case_Execution_Time => 2.000E-06);
+
+Operation ( 
+    Type => Enclosing,
+    Name => ocp_activation,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rb_deposit ));
 
 Operation (
     Type => Simple,
@@ -64,73 +211,34 @@ Operation (
 
 Operation (
     Type => Simple,
-    Name => rp_activation_calculations,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation (
-    Type => Simple,
     Name => alr_signal,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Shared_Resources_To_Lock =>
-        ( task_semaphore),
-    Shared_Resources_To_Unlock =>
-        ( task_semaphore));
-
-Operation (
-	Type => Simple,
-	Name => al_write,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( activation_log),
-	Shared_Resources_To_Unlock =>
-		( activation_log));
-
-Operation (
-	Type => Simple,
-	Name => al_read,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( activation_log),
-	Shared_Resources_To_Unlock =>
-		( activation_log));
-
-Operation (
-	Type => Simple,
-	Name => rb_deposit,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( request_buffer),
-	Shared_Resources_To_Unlock =>
-		( request_buffer));
+    Worst_Case_Execution_Time => 2.000E-06);
 
 Operation ( 
     Type => Enclosing,
-    Name => ocp_start,
+    Name => rp_cancel_deadline,
     Worst_Case_Execution_Time => 2.000E-06,
     Composite_Operation_List =>
-        ( rb_deposit ));
-
-Operation (
-	Type => Simple,
-	Name => rb_extract,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( request_buffer),
-	Shared_Resources_To_Unlock =>
-		( request_buffer));
+        ( rp_cancel_deadline_simple ));
 
 Operation (
     Type => Composite,
     Name => rp_operation,
     Composite_Operation_List =>
-        ( rp_activation_calculations,
-        put_line,
-        rp_small_whetstone,
+        (rp_small_whetstone,
         due_activation,
-        ocp_start,
+        ocp_activation,
         check_due,
         alr_signal,
         put_line));
+
+Operation (
+    Type => Composite,
+    Name => rp_job,
+    Composite_Operation_List =>
+        (rb_operation,
+        rp_cancel_deadline));
+
 
 Transaction (
 	Type => regular,
@@ -155,6 +263,42 @@ Transaction (
 			Activity_Operation => rb_operation, 
 			Activity_Server => regular_producer))); 
 
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => rp_deadline,
+	Ceiling => 241,
+	Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => rb_deadline_canceal_simple,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( rp_deadline ),
+	Shared_Resources_To_Unlock =>
+		( rp_deadline ));
+
+Operation (
+    Type => Enclosing,
+    Name => ees_write,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( al_write ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => ees_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ees_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => ees_job,
+    Composite_Operation_List =>
+        (ees_write,
+        ees_cancel_deadline));
+
 Scheduling_Server (
     Type => Regular,
     Name => external_event_server,
@@ -165,28 +309,19 @@ Scheduling_Server (
     Scheduler => fps);
 
 Shared_Resource (
-    Type => Immediate_Ceiling_Resource,
-    Name => activation_log,
-    Ceiling => 11,
-    Preassigned => YES);
-
-Shared_Resource (
-    Type => Immediate_Ceiling_Resource,
-    Name => event_queue,
-    Ceiling => 241,
-    Preassigned => YES);
-
-Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
-	Name => request_buffer,
-	Ceiling => 7,
+	Name => ees_deadline,
+	Ceiling => 241,
 	Preassigned => YES);
 
-Shared_Resource (
-    Type => Immediate_Ceiling_Resource,
-    Name => task_semaphore,
-    Ceiling => 7,
-    Preassigned => YES);
+Operation (
+	Type => Simple,
+	Name => ees_deadline_canceal_simple,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( ees_deadline ),
+	Shared_Resources_To_Unlock =>
+		( ees_deadline ));
 
 Scheduler (
 	Type => Primary_Scheduler,

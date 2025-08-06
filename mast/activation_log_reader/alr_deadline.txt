@@ -1,0 +1,14 @@
+Shared_Resource (
+	Type => Immediate_Ceiling_Resource,
+	Name => alr_deadline,
+	Ceiling => 241,
+	Preassigned => YES);
+
+Operation (
+	Type => Simple,
+	Name => alr_deadline_canceal_simple,
+	Worst_Case_Execution_Time => 2.000E-06,
+	Shared_Resources_To_Lock =>
+		( alr_deadline ),
+	Shared_Resources_To_Unlock =>
+		( alr_deadline ));

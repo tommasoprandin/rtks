@@ -2,3 +2,26 @@ Operation (
     Type => Simple,
     Name => alr_small_whetstone,
     Worst_Case_Execution_Time => 2.000E-06);
+
+Operation (
+    Type => Enclosing,
+    Name => alr_read,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( al_read ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => alr_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( alr_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => alr_job,
+    Composite_Operation_List =>
+        ( alr_small_whetstone,
+        alr_read,
+        put_line,
+        alr_cancel_deadline));
