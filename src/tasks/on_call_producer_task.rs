@@ -1,5 +1,6 @@
 use crate::{
     production_workload, 
+    activation_manager,
     deadline::DeadlineObject,
     time::{Mono, Instant}};
 use rtic_sync::signal::{SignalReader, SignalWriter};
@@ -17,6 +18,7 @@ pub async fn on_call_producer_task(
     deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
     activation_count: &mut u32
 ) -> ! {
+    activation_manager::activation_sporadic().await;
     loop {
         barrier_reader.wait().await;
         // start deadline

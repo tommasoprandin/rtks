@@ -7,4 +7,3 @@ rtic_monotonics::systick_monotonic!(Mono, 1_000);
 defmt::timestamp!("{=u32:ms}", Mono::now().duration_since_epoch().to_millis());
 
 pub type Instant = <Mono as rtic_monotonics::Monotonic>::Instant;
-pub type Duration = <Mono as rtic_monotonics::Monotonic>::Duration;

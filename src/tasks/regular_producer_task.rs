@@ -1,5 +1,6 @@
 use crate::{
     auxiliary,
+    activation_manager,
     deadline::DeadlineObject,
     production_workload,
     resources::{request_buffer::RequestBuffer, task_semaphore::TaskSemaphoreSignaler},
@@ -21,6 +22,7 @@ pub async fn regular_producer_task(
     deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
     activation_count: &mut u32,
 ) -> ! {
+    activation_manager::activation_cyclic().await;
     loop {
         *next_time = Mono::now() + PERIOD.millis();
         *activation_count += 1;

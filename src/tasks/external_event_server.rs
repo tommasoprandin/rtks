@@ -1,4 +1,5 @@
 use crate::{
+    activation_manager,
     resources::{activation_log::ActivationLog, event_queue::EventQueueWaiter},
     time::{Mono, Instant},
     deadline::DeadlineObject,
@@ -15,6 +16,7 @@ pub async fn external_event_server(
     deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
     activation_count: &mut u32,
 ) -> ! {
+    activation_manager::activation_sporadic().await;
     loop {
         events.wait().await;
         // start deadline

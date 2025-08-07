@@ -1,4 +1,5 @@
 use crate::{
+    activation_manager,
     resources::{
         activation_log::ActivationLog,
         task_semaphore::TaskSemaphoreWaiter,
@@ -19,6 +20,7 @@ pub async fn activation_log_reader(
     deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
     activation_count: &mut u32,
 ) -> ! {
+    activation_manager::activation_sporadic().await;
     loop {
         semaphore.wait().await;
         // start deadline

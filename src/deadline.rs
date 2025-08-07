@@ -5,8 +5,6 @@ use rtic_monotonics::{
 };
 use rtic_sync::signal::SignalReader;
 
-//const ZERO_TIME: u32 = 0;
-
 // SHARED RESOURCE FOR HANDLING DEADLINE
 pub struct DeadlineObject {
     name: &'static str,
@@ -47,8 +45,8 @@ impl DeadlineObject {
         self.activations += 1;
     }
 
-    pub fn cancel_deadline(&mut self, activation_ID: u32) {
-        if activation_ID == self.activations {
+    pub fn cancel_deadline(&mut self, activation_id: u32) {
+        if activation_id == self.activations {
             self.cancelled = true;
         } 
         // else ignore it, too late to cancel

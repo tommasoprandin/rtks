@@ -2,6 +2,7 @@
 #![no_main]
 
 mod auxiliary;
+mod activation_manager;
 mod deadline;
 mod production_workload;
 mod resources;
@@ -29,6 +30,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 mod app {
 
     use crate::{
+        activation_manager,
         deadline::{
             DeadlineObject, 
             periodic_deadline_watchdog,
@@ -182,23 +184,23 @@ mod app {
                 on_call_producer_deadline_writer,
                 on_call_producer_activation_count: 0,
                 // Regular_Producer
-                regular_producer_next_time: Mono::now(),
+                regular_producer_next_time: activation_manager::activation_time(),
                 regular_producer_activation_count: 0,
                 // Activation_Log_Reader_Deadline_Miss_Handler
                 activation_log_reader_deadline_signaler: activation_log_reader_deadline_reader,
                 activation_log_reader_deadline_value: tasks::activation_log_reader::DEADLINE,
-                activation_log_reader_next_deadline: Mono::now(),
+                activation_log_reader_next_deadline: Instant::from_ticks(0),
                 // External_Event_Server_Deadline_Miss_Handler
                 external_event_server_deadline_signaler: external_event_server_deadline_reader,
                 external_event_server_deadline_value: tasks::external_event_server::DEADLINE,
-                external_event_server_next_deadline: Mono::now(),
+                external_event_server_next_deadline: Instant::from_ticks(0),
                 // On_Call_Producer_Deadline_Miss_Handler
                 on_call_producer_deadline_signaler: on_call_producer_deadline_reader,
                 on_call_producer_deadline_value: tasks::on_call_producer_task::DEADLINE,
-                on_call_producer_next_deadline: Mono::now(),
+                on_call_producer_next_deadline: Instant::from_ticks(0),
                 // Regular_Producer_Deadline_Miss_Handler
                 regular_producer_period: tasks::regular_producer_task::PERIOD,
-                regular_producer_next_deadline: Mono::now() + tasks::regular_producer_task::DEADLINE.millis(), // TODO: substitute now with ZERO_TIME
+                regular_producer_next_deadline: activation_manager::activation_time() + tasks::regular_producer_task::DEADLINE.millis(), 
             },
         )
     }
