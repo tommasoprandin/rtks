@@ -1,4 +1,4 @@
-use rtic_monotonics::Monotonic;
+ use rtic_monotonics::Monotonic;
 
 use crate::time::{Instant, Mono};
 

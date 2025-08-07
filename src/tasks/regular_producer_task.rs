@@ -8,6 +8,7 @@ use crate::{
 use rtic_monotonics::{Monotonic, fugit::ExtU32};
 
 pub const PERIOD: u32 = 1_000;
+pub const DEADLINE: u32 = 500;
 
 const REGULAR_PRODUCER_WORKLOAD: u32 = 756;
 const ON_CALL_PRODUCER_WORKLOAD: u32 = 278;
@@ -23,7 +24,6 @@ pub async fn regular_producer_task(
     loop {
         *next_time = Mono::now() + PERIOD.millis();
         *activation_count += 1;
-        defmt::info!("Start of cyclic activation");
 
         // BEGIN REGULAR_PRODUCER_OPERATION
         if let Err(err) = production_workload::small_whetstone(REGULAR_PRODUCER_WORKLOAD) {

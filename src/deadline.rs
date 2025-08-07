@@ -3,6 +3,7 @@ use rtic_monotonics::{
     Monotonic, 
     fugit::ExtU32
 };
+use rtic_sync::signal::SignalReader;
 
 //const ZERO_TIME: u32 = 0;
 
@@ -54,8 +55,8 @@ impl DeadlineObject {
     }
 }
 
-// DEADLINE MISS HANDLER TASK
-pub async fn deadline_watchdog(
+// DEADLINE MISS HANDLERS TASKS
+pub async fn periodic_deadline_watchdog(
     deadline_object: &mut impl rtic::Mutex<T = DeadlineObject>,
     next_deadline: &mut Instant, 
     period: u32,
@@ -69,5 +70,23 @@ pub async fn deadline_watchdog(
         });
 
         *next_deadline += period.millis();
+    }
+}
+
+pub async fn sporadic_deadline_watchdog(
+    deadline_object: &mut impl rtic::Mutex<T = DeadlineObject>,
+    signaler: &mut SignalReader<'static, Instant>,
+    next_deadline: &mut Instant, 
+    deadline: u32,
+) -> ! {
+    // Watchdog control loop
+    loop {
+        *next_deadline = signaler.wait().await + deadline.millis();
+        
+        Mono::delay_until(*next_deadline).await;
+
+        deadline_object.lock(|deadline_object| {
+            deadline_object.deadline_miss_detected();
+        });
     }
 }
