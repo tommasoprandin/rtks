@@ -1,7 +1,7 @@
 use crate::{
     production_workload, 
     activation_manager,
-    deadline::DeadlineObject,
+    deadline::DeadlineProtectedObject,
     time::{Mono, Instant}};
 use rtic_sync::signal::{SignalReader, SignalWriter};
 use rtic::Mutex;  
@@ -14,15 +14,16 @@ pub async fn on_call_producer_task(
     request_buffer: &mut impl Mutex<T = crate::resources::request_buffer::RequestBuffer>,
     current_workload: &mut u32,
     barrier_reader: &mut SignalReader<'static, ()>,
-    deadline_writer: &mut SignalWriter<'static, Instant>,
-    deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
+    activation_writer: &mut SignalWriter<'static, Instant>,
+    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
     activation_count: &mut u32
 ) -> ! {
     activation_manager::activation_sporadic().await;
     loop {
         barrier_reader.wait().await;
-        // start deadline
-        deadline_writer.write(Mono::now());
+
+        // Signal activation to the deadline watchdog
+        activation_writer.write(Mono::now());
         *activation_count += 1;
 
         request_buffer.lock( |buffer| {
@@ -31,8 +32,8 @@ pub async fn on_call_producer_task(
         on_call_producer_operation(*current_workload);
 
         // Cancel deadline
-        deadline.lock( |deadline| {
-            deadline.cancel_deadline(*activation_count);
+        deadline_protected_object.lock( |dpo| {
+            dpo.cancel_deadline(*activation_count);
         });
     }
 } 

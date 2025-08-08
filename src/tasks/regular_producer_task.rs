@@ -1,7 +1,7 @@
 use crate::{
     auxiliary,
     activation_manager,
-    deadline::DeadlineObject,
+    deadline::DeadlineProtectedObject,
     production_workload,
     resources::{request_buffer::RequestBuffer, task_semaphore::TaskSemaphoreSignaler},
     time::{Mono, Instant},
@@ -19,7 +19,7 @@ pub async fn regular_producer_task(
     next_time: &mut Instant,
     request_buffer: &mut impl rtic::Mutex<T = RequestBuffer>,
     activation_log_reader_signaler: &mut TaskSemaphoreSignaler<'_>,
-    deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
+    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
     activation_count: &mut u32,
 ) -> ! {
     activation_manager::activation_cyclic().await;
@@ -49,8 +49,8 @@ pub async fn regular_producer_task(
         // END REGULAR_PRODUCER_OPERATION
 
         // Cancel deadline
-        deadline.lock( |deadline| {
-            deadline.cancel_deadline(*activation_count);
+        deadline_protected_object.lock( |dpo| {
+            dpo.cancel_deadline(*activation_count);
         });
 
         Mono::delay_until(*next_time).await;

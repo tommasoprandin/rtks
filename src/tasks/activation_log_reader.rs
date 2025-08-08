@@ -5,7 +5,7 @@ use crate::{
         task_semaphore::TaskSemaphoreWaiter,
     },
     production_workload,
-    deadline::DeadlineObject,
+    deadline::DeadlineProtectedObject,
     time::{Mono, Instant},
 };
 use rtic_sync::signal::SignalWriter;
@@ -16,15 +16,16 @@ pub const DEADLINE: u32 = 1_000;
 pub async fn activation_log_reader(
     semaphore: &mut TaskSemaphoreWaiter<'_>,
     activation_log: &mut impl rtic::Mutex<T = ActivationLog>,
-    deadline_writer: &mut SignalWriter<'static, Instant>,
-    deadline: &mut impl rtic::Mutex<T = DeadlineObject>,
+    activation_writer: &mut SignalWriter<'static, Instant>,
+    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
     activation_count: &mut u32,
 ) -> ! {
     activation_manager::activation_sporadic().await;
     loop {
         semaphore.wait().await;
-        // start deadline
-        deadline_writer.write(Mono::now());
+
+        // Signal activation to the deadline watchdog
+        activation_writer.write(Mono::now());
         *activation_count += 1;
 
         if let Err(err) = production_workload::small_whetstone(1_000) {
@@ -43,8 +44,8 @@ pub async fn activation_log_reader(
         });
 
         // Cancel deadline
-        deadline.lock( |deadline| {
-            deadline.cancel_deadline(*activation_count);
+        deadline_protected_object.lock( |dpo| {
+            dpo.cancel_deadline(*activation_count);
         });
     }
 }

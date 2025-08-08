@@ -6,18 +6,18 @@ use rtic_monotonics::{
 use rtic_sync::signal::SignalReader;
 
 // SHARED RESOURCE FOR HANDLING DEADLINE
-pub struct DeadlineObject {
+pub struct DeadlineProtectedObject {
     name: &'static str,
     cancelled: bool,
     misses: u32,
     activations: u32,
 }
 
-impl DeadlineObject {
+impl DeadlineProtectedObject {
     pub fn new(
     name: &'static str,
     ) -> Self {
-        return DeadlineObject {
+        return DeadlineProtectedObject {
             name,
             cancelled: false, 
             misses: 0,
@@ -55,7 +55,7 @@ impl DeadlineObject {
 
 // DEADLINE MISS HANDLERS TASKS
 pub async fn periodic_deadline_watchdog(
-    deadline_object: &mut impl rtic::Mutex<T = DeadlineObject>,
+    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
     next_deadline: &mut Instant, 
     period: u32,
 ) -> ! {
@@ -63,8 +63,8 @@ pub async fn periodic_deadline_watchdog(
     loop {
         Mono::delay_until(*next_deadline).await;
 
-        deadline_object.lock(|deadline_object| {
-            deadline_object.deadline_miss_detected();
+        deadline_protected_object.lock(|dpo| {
+            dpo.deadline_miss_detected();
         });
 
         *next_deadline += period.millis();
@@ -72,19 +72,19 @@ pub async fn periodic_deadline_watchdog(
 }
 
 pub async fn sporadic_deadline_watchdog(
-    deadline_object: &mut impl rtic::Mutex<T = DeadlineObject>,
-    signaler: &mut SignalReader<'static, Instant>,
+    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
+    activation_reader: &mut SignalReader<'static, Instant>,
     next_deadline: &mut Instant, 
     deadline: u32,
 ) -> ! {
     // Watchdog control loop
     loop {
-        *next_deadline = signaler.wait().await + deadline.millis();
+        *next_deadline = activation_reader.wait().await + deadline.millis();
         
         Mono::delay_until(*next_deadline).await;
 
-        deadline_object.lock(|deadline_object| {
-            deadline_object.deadline_miss_detected();
+        deadline_protected_object.lock(|dpo| {
+            dpo.deadline_miss_detected();
         });
     }
 }
