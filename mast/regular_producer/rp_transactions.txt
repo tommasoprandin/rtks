@@ -18,5 +18,5 @@ Transaction (
 		( (Type => System_Timed_Activity,
 			Input_Event => e1,
 			Output_Event => rpo1,
-			Activity_Operation => rb_operation, 
+			Activity_Operation => rp_job, 
 			Activity_Server => regular_producer))); 

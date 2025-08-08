@@ -1,0 +1,20 @@
+Transaction (
+	Type => regular,
+	Name => ees_transaction,
+	External_Events =>
+        ( ( Type => Sporadic,
+        Name => button_click,
+        Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => eeso1,
+        Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+            Deadline => 0.100000,
+            Referenced_Event => button_click))),
+    Event_Handlers =>
+        ( (Type => Activity,
+        Input_Event => button_click,
+        Output_Event => eeso1,
+        Activity_Operation => ees_job,
+        Activity_Server => external_event_server)));

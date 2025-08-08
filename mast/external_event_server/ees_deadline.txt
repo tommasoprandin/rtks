@@ -6,7 +6,7 @@ Shared_Resource (
 
 Operation (
 	Type => Simple,
-	Name => ees_deadline_canceal_simple,
+	Name => ees_cancel_deadline_simple,
 	Worst_Case_Execution_Time => 2.000E-06,
 	Shared_Resources_To_Lock =>
 		( ees_deadline ),

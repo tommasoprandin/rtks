@@ -52,5 +52,5 @@ Operation (
     Type => Composite,
     Name => rp_job,
     Composite_Operation_List =>
-        (rb_operation,
+        (rp_operation,
         rp_cancel_deadline));

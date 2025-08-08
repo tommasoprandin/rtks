@@ -1,0 +1,20 @@
+Transaction (
+    Type => regular,
+    Name => ocp_transaction,
+    External_Events =>
+        ( ( Type => Sporadic,
+        Name => alr_activation,
+        Min_Interarrival => 3.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => alro1,
+        Timing_Requirements =>
+        ( Type => Hard_Global_Deadline,
+            Deadline => 1.000000,
+            Referenced_Event => ocp_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+    Input_Event => alr_activation,
+    Output_Event => alro1,
+    Activity_Operation => alr_job,
+    Activity_Server => on_call_producer)));

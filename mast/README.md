@@ -6,7 +6,8 @@ In this way, it is possible to easily manage the configuration through a more in
 To organize the configuration each *task* has its own:
 - scheduling_server.txt;
 - operations.txt; 
-- transactions.txt.
+- transactions.txt;
+- deadline.txt (deadline_scheduling_server, deadline_shared_resource and relative operations).
 
 Each *shared resource* instead has its own:
 - shared_resource.txt;

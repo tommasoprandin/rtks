@@ -106,6 +106,27 @@ Scheduling_Server (
         Preassigned => YES),
     Scheduler => fps);
 
+Transaction (
+	Type => regular,
+	Name => ocp_transaction,
+	External_Events =>
+        ( ( Type => Sporadic,
+        Name => ocp_activation,
+        Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => ocpo1,
+        Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+            Deadline => 0.800000,
+            Referenced_Event => ocp_activation))),
+    Event_Handlers =>
+        ( (Type => Activity,
+        Input_Event => ocp_activation,
+        Output_Event => ocpo1,
+        Activity_Operation => ocp_job,
+        Activity_Server => on_call_producer)));
+
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
 	Name => ocp_deadline,
@@ -114,7 +135,7 @@ Shared_Resource (
 
 Operation (
 	Type => Simple,
-	Name => ocp_deadline_canceal_simple,
+	Name => ocp_cancel_deadline_simple,
 	Worst_Case_Execution_Time => 2.000E-06,
 	Shared_Resources_To_Lock =>
 		( ocp_deadline ),
@@ -149,6 +170,27 @@ Operation (
         put_line,
         alr_cancel_deadline));
 
+Transaction (
+    Type => regular,
+    Name => ocp_transaction,
+    External_Events =>
+        ( ( Type => Sporadic,
+        Name => alr_activation,
+        Min_Interarrival => 3.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => alro1,
+        Timing_Requirements =>
+        ( Type => Hard_Global_Deadline,
+            Deadline => 1.000000,
+            Referenced_Event => ocp_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+    Input_Event => alr_activation,
+    Output_Event => alro1,
+    Activity_Operation => alr_job,
+    Activity_Server => on_call_producer)));
+
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
 	Name => alr_deadline,
@@ -157,7 +199,7 @@ Shared_Resource (
 
 Operation (
 	Type => Simple,
-	Name => alr_deadline_canceal_simple,
+	Name => alr_cancel_deadline_simple,
 	Worst_Case_Execution_Time => 2.000E-06,
 	Shared_Resources_To_Lock =>
 		( alr_deadline ),
@@ -236,7 +278,7 @@ Operation (
     Type => Composite,
     Name => rp_job,
     Composite_Operation_List =>
-        (rb_operation,
+        (rp_operation,
         rp_cancel_deadline));
 
 
@@ -260,7 +302,7 @@ Transaction (
 		( (Type => System_Timed_Activity,
 			Input_Event => e1,
 			Output_Event => rpo1,
-			Activity_Operation => rb_operation, 
+			Activity_Operation => rp_job, 
 			Activity_Server => regular_producer))); 
 
 Shared_Resource (
@@ -271,7 +313,7 @@ Shared_Resource (
 
 Operation (
 	Type => Simple,
-	Name => rb_deadline_canceal_simple,
+	Name => rp_cancel_deadline_simple,
 	Worst_Case_Execution_Time => 2.000E-06,
 	Shared_Resources_To_Lock =>
 		( rp_deadline ),
@@ -308,6 +350,27 @@ Scheduling_Server (
         Preassigned => YES),
     Scheduler => fps);
 
+Transaction (
+	Type => regular,
+	Name => ees_transaction,
+	External_Events =>
+        ( ( Type => Sporadic,
+        Name => button_click,
+        Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => eeso1,
+        Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+            Deadline => 0.100000,
+            Referenced_Event => button_click))),
+    Event_Handlers =>
+        ( (Type => Activity,
+        Input_Event => button_click,
+        Output_Event => eeso1,
+        Activity_Operation => ees_job,
+        Activity_Server => external_event_server)));
+
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
 	Name => ees_deadline,
@@ -316,7 +379,7 @@ Shared_Resource (
 
 Operation (
 	Type => Simple,
-	Name => ees_deadline_canceal_simple,
+	Name => ees_cancel_deadline_simple,
 	Worst_Case_Execution_Time => 2.000E-06,
 	Shared_Resources_To_Lock =>
 		( ees_deadline ),

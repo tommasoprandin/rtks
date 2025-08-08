@@ -1,0 +1,20 @@
+Transaction (
+	Type => regular,
+	Name => ocp_transaction,
+	External_Events =>
+        ( ( Type => Sporadic,
+        Name => ocp_activation,
+        Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => ocpo1,
+        Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+            Deadline => 0.800000,
+            Referenced_Event => ocp_activation))),
+    Event_Handlers =>
+        ( (Type => Activity,
+        Input_Event => ocp_activation,
+        Output_Event => ocpo1,
+        Activity_Operation => ocp_job,
+        Activity_Server => on_call_producer)));
