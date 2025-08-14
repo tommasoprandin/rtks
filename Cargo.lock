@@ -149,6 +149,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "defmt-rtt"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2cac3b8a5644a9e02b75085ebad3b6deafdbdbdec04bb25086523828aa4dfd1"
+dependencies = [
+ "critical-section",
+ "defmt 1.0.1",
+]
+
+[[package]]
 name = "defmt-semihosting"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -692,6 +702,7 @@ dependencies = [
  "cortex-m-rt",
  "cortex-m-semihosting",
  "defmt 1.0.1",
+ "defmt-rtt",
  "defmt-semihosting",
  "heapless",
  "libm",

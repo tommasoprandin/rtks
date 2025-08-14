@@ -1,5 +1,6 @@
 [env]
 DEFMT_LOG = "info"
+CARGO_TARGET_MODE = "qemu"
 
 [build]
 target = "thumbv7em-none-eabihf"
@@ -19,12 +20,18 @@ rustflags = [
 ]
 runner = [
     "sh", "-c", 
-    """qemu-system-arm \
-    -cpu cortex-m4 \
-    -machine olimex-stm32-h405 \
-    -nographic \
-    -semihosting-config enable=on,target=native \
-    -kernel $1 | \
-    defmt-print -e $1 --log-format '[{t:>10} {L:5}] {s}'""",
+    """
+    if [ "$CARGO_TARGET_MODE" = "qemu" ]; then
+    qemu-system-arm \
+        -cpu cortex-m4 \
+        -machine olimex-stm32-h405 \
+        -nographic \
+        -semihosting-config enable=on,target=native \
+        -kernel $1 | \
+        defmt-print -e $1 --log-format '[{t:>10} {L:5}] {s}'
+    else
+        probe-rs run --protocol swd --chip stm32f405rgtx $1
+    fi
+    """,
     "--"
 ]

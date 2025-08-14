@@ -11,6 +11,9 @@ mod time;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
+#[cfg(feature = "board")]
+use defmt_rtt as _;
+#[cfg(feature = "qemu")]
 use defmt_semihosting as _;
 use stm32f4xx_hal as _;
 

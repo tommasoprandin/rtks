@@ -4,28 +4,32 @@
 3. QEMU (see https://www.qemu.org/download/)
 4. `defmt-print` (install with `cargo install defmt-print`)
 5. `flip-link` (install with `cargo install flip-link`)
+6. `probe-rs` for flashing and printing from the board (follow https://probe.rs/docs/getting-started/installation/)
 6. (Optional) `cargo-expand` (install with `cargo install cargo-expand`)
 
 ## Getting Started
+
+First setup the proper environment variables depending on whether you want to run it on QEMU or on the actual board. It is only required to set the `CARGO_TARGET_MODE` variable in `.cargo/config.toml` to either `board` or `qemu`.
+
 To compile the project with debug config:
 ```
-cargo build
+cargo build --features <board|qemu>
 ```
 or, with optimized config:
 ```
-cargo build --release
+cargo build --release --features <board|qemu>
 ```
 
 To run the project on a QEMU emulated machine:
 ```
-cargo run
+cargo run --features qemu
 ```
-or:
+or on an actual board:
 ```
-cargo run --release
+cargo run --features board
 ```
 
-The runner is set up to launch a QEMU instance that prints to the host via semihosting, `defmt-print` will decode defmt logs and print human-readable logs.
+The runner is set up to either launch a QEMU instance that prints to the host via semihosting, with `defmt-print` decoding and printing defmt logs; or to use `probe-rs` to flash and run the executable on the board.
 
 ## Crates and setup
 
