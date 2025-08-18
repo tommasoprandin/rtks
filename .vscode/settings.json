@@ -2,7 +2,8 @@
   "rust-analyzer.check.allTargets": false,
   "rust-analyzer.inlayHints.parameterHints.enable": true,
   "rust-analyzer.cargo.features": [
-    "board"
+    "board",
+    "profiling"
   ],
   "editor.formatOnSave": true,
   "[rust]": {

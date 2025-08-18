@@ -31,6 +31,8 @@ cargo run --features board
 
 The runner is set up to either launch a QEMU instance that prints to the host via semihosting, with `defmt-print` decoding and printing defmt logs; or to use `probe-rs` to flash and run the executable on the board.
 
+If you want to enable tasks performance profiling using the DWT peripheral, just enable the `profiling` feature (only works on the real board).
+
 ## Crates and setup
 
 The example is based on the crates `cortex-m` and `cortex-m-rt` which provide runtime initialization (vector table, .bss and .data section, stack pointer, etc...), and other useful stuff (eg entrypoint macro and critical section implementation), and the RTIC runtime.
