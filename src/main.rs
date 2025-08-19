@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-mod auxiliary;
 mod activation_manager;
+mod auxiliary;
 mod deadline;
 mod production_workload;
 mod resources;
@@ -29,15 +29,14 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4])]
+    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI9_5])]
 mod app {
 
     use crate::{
         activation_manager,
         deadline::{
-            DeadlineProtectedObject, 
-            periodic_deadline_watchdog,
-            sporadic_deadline_watchdog},
+            DeadlineProtectedObject, periodic_deadline_watchdog, sporadic_deadline_watchdog,
+        },
         resources::{
             activation_log::ActivationLog,
             event_queue::{EventQueue, EventQueueSignaler, EventQueueWaiter},
@@ -45,12 +44,11 @@ mod app {
             task_semaphore::{TaskSemaphore, TaskSemaphoreSignaler, TaskSemaphoreWaiter},
         },
         tasks,
-        time::{Mono, Instant},
+        time::{Instant, Mono},
     };
-    use cortex_m::asm::nop;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
     use rtic_sync::{make_signal, signal::SignalReader, signal::SignalWriter};
-    use stm32f4xx_hal::rcc::RccExt;
+    use stm32f4xx_hal::{interrupt, pac::NVIC, rcc::RccExt};
 
     // Shared resources go here
     #[shared]
@@ -67,6 +65,7 @@ mod app {
     // Local resources go here
     #[local]
     struct Local {
+        // Interrupt_Handler
         event_signaler: EventQueueSignaler<'static>,
         // External_Event_Server
         event_waiter: EventQueueWaiter<'static>,
@@ -96,7 +95,7 @@ mod app {
         // On_Call_Producer_Deadline_Miss_Handler
         on_call_producer_activation_reader: SignalReader<'static, Instant>,
         on_call_producer_deadline_value: u32,
-        on_call_producer_next_deadline: Instant, 
+        on_call_producer_next_deadline: Instant,
         // Regular_Producer_Deadline_Miss_Handler
         regular_producer_period: u32,
         regular_producer_next_deadline: Instant,
@@ -138,26 +137,38 @@ mod app {
         // Setup request buffer
         let request_buffer = RequestBuffer::new(barrier_writer);
         // Setup external event server deadline
-        let external_event_server_deadline_protected_object = DeadlineProtectedObject::new("External_Event_Server");
-        let (external_event_server_activation_writer, external_event_server_activation_reader) = make_signal!(Instant);
+        let external_event_server_deadline_protected_object =
+            DeadlineProtectedObject::new("External_Event_Server");
+        let (external_event_server_activation_writer, external_event_server_activation_reader) =
+            make_signal!(Instant);
         // Setup activation log reader deadline
-        let activation_log_reader_deadline_protected_object = DeadlineProtectedObject::new("Activation_Log_Reader");
-        let (activation_log_reader_activation_writer, activation_log_reader_activation_reader) = make_signal!(Instant);
+        let activation_log_reader_deadline_protected_object =
+            DeadlineProtectedObject::new("Activation_Log_Reader");
+        let (activation_log_reader_activation_writer, activation_log_reader_activation_reader) =
+            make_signal!(Instant);
         // Setup on call producer deadline
-        let on_call_producer_deadline_protected_object = DeadlineProtectedObject::new("On_Call_Producer");
-        let (on_call_producer_activation_writer, on_call_producer_activation_reader) = make_signal!(Instant);
+        let on_call_producer_deadline_protected_object =
+            DeadlineProtectedObject::new("On_Call_Producer");
+        let (on_call_producer_activation_writer, on_call_producer_activation_reader) =
+            make_signal!(Instant);
         // Setup regular producer deadline
-        let regular_producer_deadline_protected_object = DeadlineProtectedObject::new("Regular_Producer");
+        let regular_producer_deadline_protected_object =
+            DeadlineProtectedObject::new("Regular_Producer");
 
-        activation_log_reader_deadline_miss_handler::spawn().expect("Error spawning activation log reader deadline miss handler");
-        external_event_server_deadline_miss_handler::spawn().expect("Error spawning external event server deadline miss handler");
-        on_call_producer_deadline_miss_handler::spawn().expect("Error spawning on call producer deadline miss handler");
-        regular_producer_deadline_miss_handler::spawn().expect("Error spawning regular producer deadline miss handler");
+        activation_log_reader_deadline_miss_handler::spawn()
+            .expect("Error spawning activation log reader deadline miss handler");
+        external_event_server_deadline_miss_handler::spawn()
+            .expect("Error spawning external event server deadline miss handler");
+        on_call_producer_deadline_miss_handler::spawn()
+            .expect("Error spawning on call producer deadline miss handler");
+        regular_producer_deadline_miss_handler::spawn()
+            .expect("Error spawning regular producer deadline miss handler");
 
         external_event_server::spawn().expect("Error spawning external event server");
         activation_log_reader::spawn().expect("Error spawning activation log reader task");
         regular_producer::spawn().expect("Error spawning regular producer task");
         on_call_producer::spawn().expect("Error spawning on call producer task");
+        interrupt_generator::spawn().expect("Error spawning interrupt generator task");
 
         (
             Shared {
@@ -203,16 +214,10 @@ mod app {
                 on_call_producer_next_deadline: Instant::from_ticks(0),
                 // Regular_Producer_Deadline_Miss_Handler
                 regular_producer_period: tasks::regular_producer_task::PERIOD,
-                regular_producer_next_deadline: activation_manager::activation_time() + tasks::regular_producer_task::DEADLINE.millis(), 
+                regular_producer_next_deadline: activation_manager::activation_time()
+                    + tasks::regular_producer_task::DEADLINE.millis(),
             },
         )
-    }
-
-    #[idle]
-    fn idle(_: idle::Context) -> ! {
-        loop {
-            nop();
-        }
     }
 
     #[task(priority = 3, local=[activation_log_reader_waiter, activation_log_reader_activation_writer, activation_log_reader_activation_count], shared=[activation_log, activation_log_reader_deadline_protected_object])]
@@ -247,7 +252,7 @@ mod app {
             cx.local.barrier_reader,
             &mut cx.local.on_call_producer_activation_writer,
             &mut cx.shared.on_call_producer_deadline_protected_object,
-            &mut cx.local.on_call_producer_activation_count
+            &mut cx.local.on_call_producer_activation_count,
         )
         .await;
     }
@@ -259,47 +264,78 @@ mod app {
             &mut cx.shared.request_buffer,
             cx.local.activation_log_reader_signaler,
             &mut cx.shared.regular_producer_deadline_protected_object,
-            &mut cx.local.regular_producer_activation_count
+            &mut cx.local.regular_producer_activation_count,
         )
         .await;
     }
 
     #[task(priority = 12, local = [activation_log_reader_activation_reader, activation_log_reader_next_deadline, activation_log_reader_deadline_value], shared =[activation_log_reader_deadline_protected_object])]
-    async fn activation_log_reader_deadline_miss_handler(mut cx: activation_log_reader_deadline_miss_handler::Context) -> ! {
+    async fn activation_log_reader_deadline_miss_handler(
+        mut cx: activation_log_reader_deadline_miss_handler::Context,
+    ) -> ! {
         sporadic_deadline_watchdog(
             &mut cx.shared.activation_log_reader_deadline_protected_object,
             &mut cx.local.activation_log_reader_activation_reader,
             &mut cx.local.activation_log_reader_next_deadline,
             *cx.local.activation_log_reader_deadline_value,
-        ).await;
+        )
+        .await;
     }
 
     #[task(priority = 12, local = [external_event_server_activation_reader, external_event_server_next_deadline, external_event_server_deadline_value], shared =[external_event_server_deadline_protected_object])]
-    async fn external_event_server_deadline_miss_handler(mut cx: external_event_server_deadline_miss_handler::Context) -> ! {
+    async fn external_event_server_deadline_miss_handler(
+        mut cx: external_event_server_deadline_miss_handler::Context,
+    ) -> ! {
         sporadic_deadline_watchdog(
             &mut cx.shared.external_event_server_deadline_protected_object,
             &mut cx.local.external_event_server_activation_reader,
             &mut cx.local.external_event_server_next_deadline,
             *cx.local.external_event_server_deadline_value,
-        ).await;
+        )
+        .await;
     }
 
     #[task(priority = 12, local = [on_call_producer_activation_reader, on_call_producer_next_deadline, on_call_producer_deadline_value], shared =[on_call_producer_deadline_protected_object])]
-    async fn on_call_producer_deadline_miss_handler(mut cx: on_call_producer_deadline_miss_handler::Context) -> ! {
+    async fn on_call_producer_deadline_miss_handler(
+        mut cx: on_call_producer_deadline_miss_handler::Context,
+    ) -> ! {
         sporadic_deadline_watchdog(
             &mut cx.shared.on_call_producer_deadline_protected_object,
             &mut cx.local.on_call_producer_activation_reader,
             &mut cx.local.on_call_producer_next_deadline,
             *cx.local.on_call_producer_deadline_value,
-        ).await;
+        )
+        .await;
     }
 
     #[task(priority = 12, local = [regular_producer_next_deadline, regular_producer_period], shared =[regular_producer_deadline_protected_object])]
-    async fn regular_producer_deadline_miss_handler(mut cx: regular_producer_deadline_miss_handler::Context) -> ! {
+    async fn regular_producer_deadline_miss_handler(
+        mut cx: regular_producer_deadline_miss_handler::Context,
+    ) -> ! {
         periodic_deadline_watchdog(
             &mut cx.shared.regular_producer_deadline_protected_object,
             &mut cx.local.regular_producer_next_deadline,
             *cx.local.regular_producer_period,
-        ).await;
+        )
+        .await;
+    }
+
+    #[task(priority = 13)]
+    async fn interrupt_generator(_cx: interrupt_generator::Context) -> ! {
+        unsafe {
+            NVIC::unmask(interrupt::USART1);
+        }
+        activation_manager::activation_cyclic().await;
+        loop {
+            let next_time = Mono::now() + 10.secs();
+            NVIC::pend(interrupt::USART1);
+            defmt::info!("USART1 interrupt generated");
+            Mono::delay_until(next_time).await;
+        }
+    }
+
+    #[task(binds = USART1, local = [event_signaler])]
+    fn interrupt_handler(cx: interrupt_handler::Context) {
+        cx.local.event_signaler.signal(());
     }
 }
