@@ -6,8 +6,6 @@
     "profiling-activation_log_reader",
     "profiling-external_event_server",
     "profiling-on_call_producer",
-    "profiling-regular_producer",
-    "profiling-activation_log",
     "profiling-request_buffer",
   ],
   "editor.formatOnSave": true,

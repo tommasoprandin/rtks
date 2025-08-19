@@ -2,12 +2,11 @@ use crate::{
     activation_manager, auxiliary,
     deadline::DeadlineProtectedObject,
     production_workload,
+    profiling::{Profiler as _, RegularProducerProfiler},
     resources::{request_buffer::RequestBuffer, task_semaphore::TaskSemaphoreSignaler},
     time::{Instant, Mono},
 };
 use rtic_monotonics::{Monotonic, fugit::ExtU32};
-#[cfg(feature = "profiling-regular_producer")]
-use stm32f4xx_hal::dwt::Dwt;
 
 pub const PERIOD: u32 = 1_000;
 pub const DEADLINE: u32 = 500;
@@ -16,25 +15,72 @@ const REGULAR_PRODUCER_WORKLOAD: u32 = 756;
 const ON_CALL_PRODUCER_WORKLOAD: u32 = 278;
 const ACTIVATION_CONDITION: usize = 2;
 
-pub async fn regular_producer_task(
-    next_time: &mut Instant,
-    request_buffer: &mut impl rtic::Mutex<T = RequestBuffer>,
-    activation_log_reader_signaler: &mut TaskSemaphoreSignaler<'_>,
-    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
-    activation_count: &mut u32,
-    #[cfg(feature = "profiling-regular_producer")] dwt: &Dwt,
-) -> ! {
-    #[cfg(feature = "profiling-regular_producer")]
-    let mut times: [u32; 3] = [0; 3];
-    #[cfg(feature = "profiling-regular_producer")]
-    let mut stopwatch = dwt.stopwatch(&mut times);
+pub struct RegularProducerLocals {
+    activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
+    next_time: Instant,
+    activation_count: u32,
+    profiler: RegularProducerProfiler,
+}
 
+impl RegularProducerLocals {
+    #[cfg(feature = "profiling-regular_producer")]
+    pub fn new(
+        alr_signaler: TaskSemaphoreSignaler<'static>,
+        stopwatch: StopWatch<'static>,
+    ) -> Self {
+        Self {
+            activation_log_reader_signaler: alr_signaler,
+            next_time: Mono::now(),
+            activation_count: 0,
+            profiler: RegularProducerProfiler::new("Regular producer profiler", stopwatch),
+        }
+    }
+
+    #[cfg(not(feature = "profiling-regular_producer"))]
+    pub fn new(alr_signaler: TaskSemaphoreSignaler<'static>) -> Self {
+        Self {
+            activation_log_reader_signaler: alr_signaler,
+            next_time: Mono::now(),
+            activation_count: 0,
+            profiler: RegularProducerProfiler::new(),
+        }
+    }
+}
+
+pub struct RegularProducerShared<RB, DPO>
+where
+    RB: rtic::Mutex<T = RequestBuffer>,
+    DPO: rtic::Mutex<T = DeadlineProtectedObject>,
+{
+    request_buffer: RB,
+    deadline_protected_object: DPO,
+}
+
+impl<RB, DPO> RegularProducerShared<RB, DPO>
+where
+    RB: rtic::Mutex<T = RequestBuffer>,
+    DPO: rtic::Mutex<T = DeadlineProtectedObject>,
+{
+    pub fn new(request_buffer: RB, deadline_po: DPO) -> Self {
+        Self {
+            request_buffer,
+            deadline_protected_object: deadline_po,
+        }
+    }
+}
+
+pub async fn regular_producer_task<
+    RB: rtic::Mutex<T = RequestBuffer>,
+    DPO: rtic::Mutex<T = DeadlineProtectedObject>,
+>(
+    locals: &mut RegularProducerLocals,
+    shared: &mut RegularProducerShared<RB, DPO>,
+) -> ! {
     activation_manager::activation_cyclic().await;
     loop {
-        #[cfg(feature = "profiling-regular_producer")]
-        stopwatch.reset();
-        *next_time = Mono::now() + PERIOD.millis();
-        *activation_count += 1;
+        locals.profiler.reset();
+        locals.next_time = Mono::now() + PERIOD.millis();
+        locals.activation_count += 1;
 
         // BEGIN REGULAR_PRODUCER_OPERATION
         // Standard workload
@@ -44,44 +90,32 @@ pub async fn regular_producer_task(
                 err
             );
         }
-        #[cfg(feature = "profiling-regular_producer")]
-        stopwatch.lap(); // Lap 1: Workload execution
+        locals.profiler.lap(); // Lap 1: Workload execution
 
         // Helper tasks activations
         if auxiliary::due_activation(ACTIVATION_CONDITION) {
             // on_call_producer activation
-            request_buffer.lock(|buffer| {
+            shared.request_buffer.lock(|buffer| {
                 if !buffer.deposit(ON_CALL_PRODUCER_WORKLOAD) {
                     defmt::info!("Failed sporadic activation.");
                 }
             })
         }
         if auxiliary::check_due() {
-            activation_log_reader_signaler.signal();
+            locals.activation_log_reader_signaler.signal();
         }
         defmt::info!("End of cyclic activation.");
         // END REGULAR_PRODUCER_OPERATION
 
         // Cancel deadline
-        deadline_protected_object.lock(|dpo| {
-            dpo.cancel_deadline(*activation_count);
+        shared.deadline_protected_object.lock(|dpo| {
+            dpo.cancel_deadline(locals.activation_count);
         });
 
-        #[cfg(feature = "profiling-regular_producer")]
-        stopwatch.lap(); // Lap 2: Total response time
+        locals.profiler.lap(); // Lap 2: Total response time
 
-        #[cfg(feature = "profiling-regular_producer")]
-        {
-            let workload_time = stopwatch.lap_time(1).unwrap().as_micros();
-            let overhead_time = stopwatch.lap_time(2).unwrap().as_micros();
-            let total_time = workload_time + overhead_time;
-            defmt::info!(
-                "Regular producer task: workload={}us\ttotal={}us",
-                workload_time,
-                total_time,
-            );
-        }
+        locals.profiler.log();
 
-        Mono::delay_until(*next_time).await;
+        Mono::delay_until(locals.next_time).await;
     }
 }

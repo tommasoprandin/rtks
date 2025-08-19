@@ -5,6 +5,7 @@ mod activation_manager;
 mod auxiliary;
 mod deadline;
 mod production_workload;
+mod profiling;
 mod resources;
 mod tasks;
 mod time;
@@ -53,9 +54,12 @@ mod app {
             activation_log::ActivationLog,
             event_queue::{EventQueue, EventQueueSignaler, EventQueueWaiter},
             request_buffer::RequestBuffer,
-            task_semaphore::{TaskSemaphore, TaskSemaphoreSignaler, TaskSemaphoreWaiter},
+            task_semaphore::{TaskSemaphore, TaskSemaphoreWaiter},
         },
-        tasks,
+        tasks::{
+            self,
+            regular_producer_task::{RegularProducerLocals, RegularProducerShared},
+        },
         time::{Instant, Mono},
     };
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
@@ -109,11 +113,7 @@ mod app {
         #[cfg(feature = "profiling-on_call_producer")]
         on_call_producer_stopwatch: StopWatch<'static>,
         // Regular_Producer
-        activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
-        regular_producer_next_time: Instant,
-        regular_producer_activation_count: u32,
-        #[cfg(feature = "profiling-regular_producer")]
-        regular_producer_dwt: &'static Dwt,
+        regular_producer_locals: RegularProducerLocals,
         // Activation_Log_Reader_Deadline_Miss_Handler
         activation_log_reader_activation_reader: SignalReader<'static, Instant>,
         activation_log_reader_deadline_value: u32,
@@ -143,6 +143,8 @@ mod app {
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
         #[cfg(feature = "profiling-on_call_producer")]
         on_call_producer_activation_times: [u32; 2] = [0; 2],
+        #[cfg(feature = "profiling-regular_producer")]
+        regular_producer_times: [u32; 3] = [0; 3],
         activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
@@ -241,7 +243,6 @@ mod app {
                 external_event_server_activation_writer,
                 external_event_server_activation_count: 0,
                 // Activation_Log_Reader
-                activation_log_reader_signaler,
                 activation_log_reader_waiter,
                 activation_log_reader_activation_writer,
                 activation_log_reader_activation_count: 0,
@@ -256,12 +257,13 @@ mod app {
                 wc_ocp_small_whetstone: 0,
                 #[cfg(feature = "profiling-on_call_producer")]
                 on_call_producer_stopwatch: dwt
-                    .stopwatch(&mut *cx.local.on_call_producer_activation_times),
+                    .stopwatch(cx.local.on_call_producer_activation_times),
                 // Regular_Producer
-                regular_producer_next_time: activation_manager::activation_time(),
-                regular_producer_activation_count: 0,
-                #[cfg(feature = "profiling-regular_producer")]
-                regular_producer_dwt: dwt,
+                regular_producer_locals: RegularProducerLocals::new(
+                    activation_log_reader_signaler,
+                    #[cfg(feature = "profiling-regular_producer")]
+                    dwt.stopwatch(cx.local.regular_producer_times),
+                ),
                 // Activation_Log_Reader_Deadline_Miss_Handler
                 activation_log_reader_activation_reader,
                 activation_log_reader_deadline_value: tasks::activation_log_reader::DEADLINE,
@@ -325,16 +327,14 @@ mod app {
         .await;
     }
 
-    #[task(priority = 7, local = [regular_producer_next_time, activation_log_reader_signaler, regular_producer_activation_count, regular_producer_dwt], shared = [request_buffer, regular_producer_deadline_protected_object])]
-    async fn regular_producer(mut cx: regular_producer::Context) {
+    #[task(priority = 7, local = [regular_producer_locals], shared = [request_buffer, regular_producer_deadline_protected_object])]
+    async fn regular_producer(cx: regular_producer::Context) {
         tasks::regular_producer_task::regular_producer_task(
-            cx.local.regular_producer_next_time,
-            &mut cx.shared.request_buffer,
-            cx.local.activation_log_reader_signaler,
-            &mut cx.shared.regular_producer_deadline_protected_object,
-            &mut cx.local.regular_producer_activation_count,
-            #[cfg(feature = "profiling-regular_producer")]
-            &cx.local.regular_producer_dwt,
+            cx.local.regular_producer_locals,
+            &mut RegularProducerShared::new(
+                cx.shared.request_buffer,
+                cx.shared.regular_producer_deadline_protected_object,
+            ),
         )
         .await;
     }
