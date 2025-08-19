@@ -17,6 +17,16 @@ use defmt_rtt as _;
 use defmt_semihosting as _;
 use stm32f4xx_hal as _;
 
+#[cfg(any(
+    feature = "profiling-activation_log_reader",
+    feature = "profiling-external_event_server",
+    feature = "profiling-on_call_producer",
+    feature = "profiling-regular_producer",
+    feature = "profiling-activation_log",
+    feature = "profiling-request_buffer",
+))]
+pub const WCET_THRESHOLD: u32 = 100;
+
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     interrupt::disable();
@@ -51,7 +61,14 @@ mod app {
     use cortex_m::asm::nop;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
     use rtic_sync::{make_signal, signal::SignalReader, signal::SignalWriter};
-    #[cfg(feature = "profiling")]
+    #[cfg(any(
+        feature = "profiling-activation_log_reader",
+        feature = "profiling-external_event_server",
+        feature = "profiling-on_call_producer",
+        feature = "profiling-regular_producer",
+        feature = "profiling-activation_log",
+        feature = "profiling-request_buffer",
+    ))]
     use stm32f4xx_hal::dwt::Dwt;
     use stm32f4xx_hal::{dwt::DwtExt, rcc::RccExt};
 
@@ -84,11 +101,19 @@ mod app {
         barrier_reader: SignalReader<'static, ()>,
         on_call_producer_activation_writer: SignalWriter<'static, Instant>,
         on_call_producer_activation_count: u32,
+        #[cfg(feature = "profiling-on_call_producer")]
+        wc_extract_workload: u32,
+        #[cfg(feature = "profiling-on_call_producer")]
+        wc_ocp_small_whetstone: u32,
+        #[cfg(feature = "profiling-on_call_producer")]
+        on_call_producer_times: [u32; 2],
+        #[cfg(feature = "profiling-on_call_producer")]
+        on_call_producer_stopwatch: StopWatch<'static>,
         // Regular_Producer
         activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
         regular_producer_next_time: Instant,
         regular_producer_activation_count: u32,
-        #[cfg(feature = "profiling")]
+        #[cfg(feature = "profiling-regular_producer")]
         regular_producer_dwt: &'static Dwt,
         // Activation_Log_Reader_Deadline_Miss_Handler
         activation_log_reader_activation_reader: SignalReader<'static, Instant>,
@@ -108,7 +133,14 @@ mod app {
     }
 
     #[init(local = [
-        #[cfg(feature="profiling")]
+        #[cfg(any(
+            feature = "profiling-activation_log_reader",
+            feature = "profiling-external_event_server",
+            feature = "profiling-on_call_producer",
+            feature = "profiling-regular_producer",
+            feature = "profiling-activation_log",
+            feature = "profiling-request_buffer",
+        ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
         activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
     ])]
@@ -128,7 +160,14 @@ mod app {
             .pclk1(42.MHz())
             .freeze();
 
-        #[cfg(feature = "profiling")]
+        #[cfg(any(
+            feature = "profiling-external_event_server",
+            feature = "profiling-activation_log_reader",
+            feature = "profiling-on_call_producer",
+            feature = "profiling-regular_producer",
+            feature = "profiling-activation_log",
+            feature = "profiling-request_buffer",
+        ))]
         let dwt = unsafe {
             let dwt = core.DWT.constrain(core.DCB, &clocks);
             cx.local.dwt_storage.write(dwt);
@@ -209,10 +248,18 @@ mod app {
                 barrier_reader,
                 on_call_producer_activation_writer,
                 on_call_producer_activation_count: 0,
+                #[cfg(feature = "profiling-on_call_producer")]
+                wc_extract_workload: 0,
+                #[cfg(feature = "profiling-on_call_producer")]
+                wc_ocp_small_whetstone: 0,
+                #[cfg(feature = "profiling-on_call_producer")]
+                on_call_producer_times: [0; 2],
+                #[cfg(feature = "profiling-on_call_producer")]
+                on_call_producer_stopwatch: dwt.stopwatch(&mut on_call_producer_times),
                 // Regular_Producer
                 regular_producer_next_time: activation_manager::activation_time(),
                 regular_producer_activation_count: 0,
-                #[cfg(feature = "profiling")]
+                #[cfg(feature = "profiling-regular_producer")]
                 regular_producer_dwt: dwt,
                 // Activation_Log_Reader_Deadline_Miss_Handler
                 activation_log_reader_activation_reader,
@@ -265,7 +312,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 5, local = [current_workload, barrier_reader, on_call_producer_activation_writer, on_call_producer_activation_count], shared =[request_buffer, on_call_producer_deadline_protected_object])]
+    #[task(priority = 5, local = [current_workload, barrier_reader, on_call_producer_activation_writer, on_call_producer_activation_count, wc_extract_workload, wc_ocp_small_whetstone, on_call_producer_times, on_call_producer_stopwatch], shared = [request_buffer, on_call_producer_deadline_protected_object])]
     async fn on_call_producer(mut cx: on_call_producer::Context) {
         tasks::on_call_producer_task::on_call_producer_task(
             &mut cx.shared.request_buffer,
@@ -274,6 +321,14 @@ mod app {
             &mut cx.local.on_call_producer_activation_writer,
             &mut cx.shared.on_call_producer_deadline_protected_object,
             &mut cx.local.on_call_producer_activation_count,
+            #[cfg(feature = "profiling-on_call_producer")]
+            &mut cx.local.wc_extract_workload,
+            #[cfg(feature = "profiling-on_call_producer")]
+            &mut cx.local.wc_ocp_small_whetstone,
+            #[cfg(feature = "profiling-on_call_producer")]
+            &mut cx.local.on_call_producer_times,
+            #[cfg(feature = "profiling-on_call_producer")]
+            &mut cx.local.on_call_producer_stopwatch,
         )
         .await;
     }
@@ -286,7 +341,7 @@ mod app {
             cx.local.activation_log_reader_signaler,
             &mut cx.shared.regular_producer_deadline_protected_object,
             &mut cx.local.regular_producer_activation_count,
-            #[cfg(feature = "profiling")]
+            #[cfg(feature = "profiling-regular_producer")]
             &cx.local.regular_producer_dwt,
         )
         .await;

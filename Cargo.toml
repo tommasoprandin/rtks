@@ -7,7 +7,12 @@ edition = "2024"
 default = []
 board = ["defmt-rtt"]
 qemu = ["defmt-semihosting"]
-profiling = []
+profiling-activation_log_reader = []
+profiling-external_event_server = []
+profiling-on_call_producer = []
+profiling-regular_producer = []
+profiling-activation_log = []
+profiling-request_buffer = []
 
 [dependencies]
 cortex-m = { version = "0.7.7", features = [

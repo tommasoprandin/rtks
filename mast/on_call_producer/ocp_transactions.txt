@@ -16,5 +16,5 @@ Transaction (
         ( (Type => Activity,
         Input_Event => ocp_activation,
         Output_Event => ocpo1,
-        Activity_Operation => ocp_job,
+        Activity_Operation => ocp_operation,
         Activity_Server => on_call_producer)));

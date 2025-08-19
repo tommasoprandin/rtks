@@ -6,7 +6,7 @@ use crate::{
     time::{Instant, Mono},
 };
 use rtic_monotonics::{Monotonic, fugit::ExtU32};
-#[cfg(feature = "profiling")]
+#[cfg(feature = "profiling-regular_producer")]
 use stm32f4xx_hal::dwt::Dwt;
 
 pub const PERIOD: u32 = 1_000;
@@ -22,16 +22,16 @@ pub async fn regular_producer_task(
     activation_log_reader_signaler: &mut TaskSemaphoreSignaler<'_>,
     deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
     activation_count: &mut u32,
-    #[cfg(feature = "profiling")] dwt: &Dwt,
+    #[cfg(feature = "profiling-regular_producer")] dwt: &Dwt,
 ) -> ! {
-    #[cfg(feature = "profiling")]
+    #[cfg(feature = "profiling-regular_producer")]
     let mut times: [u32; 3] = [0; 3];
-    #[cfg(feature = "profiling")]
+    #[cfg(feature = "profiling-regular_producer")]
     let mut stopwatch = dwt.stopwatch(&mut times);
 
     activation_manager::activation_cyclic().await;
     loop {
-        #[cfg(feature = "profiling")]
+        #[cfg(feature = "profiling-regular_producer")]
         stopwatch.reset();
         *next_time = Mono::now() + PERIOD.millis();
         *activation_count += 1;
@@ -44,7 +44,7 @@ pub async fn regular_producer_task(
                 err
             );
         }
-        #[cfg(feature = "profiling")]
+        #[cfg(feature = "profiling-regular_producer")]
         stopwatch.lap(); // Lap 1: Workload execution
 
         // Helper tasks activations
@@ -67,10 +67,10 @@ pub async fn regular_producer_task(
             dpo.cancel_deadline(*activation_count);
         });
 
-        #[cfg(feature = "profiling")]
+        #[cfg(feature = "profiling-regular_producer")]
         stopwatch.lap(); // Lap 2: Total response time
 
-        #[cfg(feature = "profiling")]
+        #[cfg(feature = "profiling-regular_producer")]
         {
             let workload_time = stopwatch.lap_time(1).unwrap().as_micros();
             let overhead_time = stopwatch.lap_time(2).unwrap().as_micros();
