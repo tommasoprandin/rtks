@@ -22,7 +22,6 @@ pub async fn on_call_producer_task(
     activation_count: &mut u32,
     #[cfg(feature = "profiling-on_call_producer")] wc_extract_workload: &mut u32,
     #[cfg(feature = "profiling-on_call_producer")] wc_ocp_small_whetstone: &mut u32,
-    #[cfg(feature = "profiling-on_call_producer")] times: &mut [u32; 2],
     #[cfg(feature = "profiling-on_call_producer")] stopwatch: &mut StopWatch<'static>,
 ) -> ! {
     activation_manager::activation_sporadic().await;
@@ -52,9 +51,9 @@ pub async fn on_call_producer_task(
 
         #[cfg(feature = "profiling-on_call_producer")]
         {
-            wc_extract_workload = wc_extract_workload.max(stopwatch.lap_time(1).unwrap().as_micros());
-            wc_ocp_small_whetstone = wc_ocp_small_whetstone.max(stopwatch.lap_time(2).unwrap().as_micros() - stopwatch.lap_time(1).unwrap().as_micros());
-            if activation_count == WCET_THRESHOLD {
+            *wc_extract_workload = *wc_extract_workload.max(&mut(stopwatch.lap_time(1).unwrap().as_micros() as u32));
+            *wc_ocp_small_whetstone = *wc_ocp_small_whetstone.max(&mut((stopwatch.lap_time(2).unwrap().as_micros() - stopwatch.lap_time(1).unwrap().as_micros()) as u32));
+            if *activation_count == WCET_THRESHOLD {
                 defmt::info!("OCP Profiling:\t
                 extract workload = {}us\t
                 ocp small whetstone = {}us", 
