@@ -39,7 +39,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4])]
+    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI9_5])]
 mod app {
 
     use core::mem::MaybeUninit;
@@ -58,7 +58,6 @@ mod app {
         tasks,
         time::{Instant, Mono},
     };
-    use cortex_m::asm::nop;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
     use rtic_sync::{make_signal, signal::SignalReader, signal::SignalWriter};
     #[cfg(any(
@@ -69,8 +68,9 @@ mod app {
         feature = "profiling-activation_log",
         feature = "profiling-request_buffer",
     ))]
-    use stm32f4xx_hal::dwt::{Dwt, StopWatch};
-    use stm32f4xx_hal::{dwt::DwtExt, rcc::RccExt};
+    use stm32f4xx_hal::dwt::{Dwt, DwtExt, StopWatch};
+
+    use stm32f4xx_hal::{interrupt, pac::NVIC, rcc::RccExt};
 
     // Shared resources go here
     #[shared]
@@ -87,6 +87,7 @@ mod app {
     // Local resources go here
     #[local]
     struct Local {
+        // Interrupt_Handler
         event_signaler: EventQueueSignaler<'static>,
         // External_Event_Server
         event_waiter: EventQueueWaiter<'static>,
@@ -220,6 +221,7 @@ mod app {
         activation_log_reader::spawn().expect("Error spawning activation log reader task");
         regular_producer::spawn().expect("Error spawning regular producer task");
         on_call_producer::spawn().expect("Error spawning on call producer task");
+        interrupt_generator::spawn().expect("Error spawning interrupt generator task");
 
         (
             Shared {
@@ -253,7 +255,8 @@ mod app {
                 #[cfg(feature = "profiling-on_call_producer")]
                 wc_ocp_small_whetstone: 0,
                 #[cfg(feature = "profiling-on_call_producer")]
-                on_call_producer_stopwatch: dwt.stopwatch(&mut *cx.local.on_call_producer_activation_times),
+                on_call_producer_stopwatch: dwt
+                    .stopwatch(&mut *cx.local.on_call_producer_activation_times),
                 // Regular_Producer
                 regular_producer_next_time: activation_manager::activation_time(),
                 regular_producer_activation_count: 0,
@@ -277,13 +280,6 @@ mod app {
                     + tasks::regular_producer_task::DEADLINE.millis(),
             },
         )
-    }
-
-    #[idle]
-    fn idle(_: idle::Context) -> ! {
-        loop {
-            nop();
-        }
     }
 
     #[task(priority = 3, local=[activation_log_reader_waiter, activation_log_reader_activation_writer, activation_log_reader_activation_count], shared=[activation_log, activation_log_reader_deadline_protected_object])]
@@ -392,5 +388,24 @@ mod app {
             *cx.local.regular_producer_period,
         )
         .await;
+    }
+
+    #[task(priority = 13)]
+    async fn interrupt_generator(_cx: interrupt_generator::Context) -> ! {
+        unsafe {
+            NVIC::unmask(interrupt::USART1);
+        }
+        activation_manager::activation_cyclic().await;
+        loop {
+            let next_time = Mono::now() + 10.secs();
+            NVIC::pend(interrupt::USART1);
+            defmt::info!("USART1 interrupt generated");
+            Mono::delay_until(next_time).await;
+        }
+    }
+
+    #[task(binds = USART1, local = [event_signaler])]
+    fn interrupt_handler(cx: interrupt_handler::Context) {
+        cx.local.event_signaler.signal(());
     }
 }
