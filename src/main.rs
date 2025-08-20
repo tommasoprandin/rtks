@@ -12,21 +12,8 @@ mod time;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
-#[cfg(feature = "board")]
-use defmt_rtt as _;
-#[cfg(feature = "qemu")]
 use defmt_semihosting as _;
 use stm32f4xx_hal as _;
-
-#[cfg(any(
-    feature = "profiling-activation_log_reader",
-    feature = "profiling-external_event_server",
-    feature = "profiling-on_call_producer",
-    feature = "profiling-regular_producer",
-    feature = "profiling-activation_log",
-    feature = "profiling-request_buffer",
-))]
-pub const WCET_THRESHOLD: u32 = 100;
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -43,6 +30,14 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI9_5])]
 mod app {
 
+    #[cfg(any(
+        feature = "profiling-activation_log_reader",
+        feature = "profiling-external_event_server",
+        feature = "profiling-on_call_producer",
+        feature = "profiling-regular_producer",
+        feature = "profiling-activation_log",
+        feature = "profiling-request_buffer",
+    ))]
     use core::mem::MaybeUninit;
 
     use crate::{
@@ -99,7 +94,7 @@ mod app {
         external_event_server_activation_writer: SignalWriter<'static, Instant>,
         external_event_server_activation_count: u32,
         // Activation_Log_Reader
-        activation_log_reader_waiter: TaskSemaphoreWaiter<'static>, 
+        activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
         activation_log_reader_activation_writer: SignalWriter<'static, Instant>,
         activation_log_reader_activation_count: u32,
         // On_Call_Producer
@@ -302,7 +297,7 @@ mod app {
             &mut OnCallProducerShared::new(
                 cx.shared.request_buffer,
                 cx.shared.on_call_producer_deadline_protected_object,
-            )    
+            ),
         )
         .await;
     }

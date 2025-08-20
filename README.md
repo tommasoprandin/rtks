@@ -13,25 +13,20 @@ First setup the proper environment variables depending on whether you want to ru
 
 To compile the project with debug config:
 ```
-cargo build --features <board|qemu>
+cargo build
 ```
 or, with optimized config:
 ```
-cargo build --release --features <board|qemu>
+cargo build --release
 ```
 
-To run the project on a QEMU emulated machine:
+To run the project on a QEMU emulated machine or board (have care to set the `CARGO_TARGET_MODE` env var to either `board` or `qemu` depending on where you want to run it):
 ```
-cargo run --features qemu
+cargo run
 ```
-or on an actual board:
-```
-cargo run --features board
-```
-
 The runner is set up to either launch a QEMU instance that prints to the host via semihosting, with `defmt-print` decoding and printing defmt logs; or to use `probe-rs` to flash and run the executable on the board.
 
-If you want to enable tasks performance profiling using the DWT peripheral, just enable the `profiling` feature (only works on the real board).
+If you want to enable tasks performance profiling using the DWT peripheral, just enable the variouse `profiling` features (only works on the real board).
 
 ## Crates and setup
 

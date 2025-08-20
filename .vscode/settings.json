@@ -2,7 +2,7 @@
   "rust-analyzer.check.allTargets": false,
   "rust-analyzer.inlayHints.parameterHints.enable": true,
   "rust-analyzer.cargo.features": [
-    "board",
+    "profiling-regular_producer",
     "profiling-activation_log_reader",
     "profiling-external_event_server",
     "profiling-on_call_producer",

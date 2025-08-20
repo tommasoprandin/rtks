@@ -1,14 +1,14 @@
-use crate::{ 
+#[cfg(feature = "profiling-on_call_producer")]
+use crate::profiling::{Profiler as _, on_call_producer::OnCallProducerProfiler};
+use crate::{
     activation_manager,
     deadline::DeadlineProtectedObject,
     production_workload,
-    time::{Mono, Instant},
     resources::request_buffer::RequestBuffer,
+    time::{Instant, Mono},
 };
-#[cfg(feature = "profiling-on_call_producer")]
-use crate::profiling::{Profiler as _, OnCallProducerProfiler, WCET_THRESHOLD};
-use rtic_sync::signal::{SignalReader, SignalWriter};  
 use rtic_monotonics::Monotonic;
+use rtic_sync::signal::{SignalReader, SignalWriter};
 #[cfg(feature = "profiling-on_call_producer")]
 use stm32f4xx_hal::dwt::StopWatch;
 
@@ -35,7 +35,7 @@ impl OnCallProducerLocals {
             barrier_reader,
             activation_writer,
             activation_count: 0,
-            profiler: OnCallProducerProfiler::new("On call producer profiler", stopwatch),
+            profiler: OnCallProducerProfiler::new(stopwatch),
         }
     }
 
@@ -78,9 +78,9 @@ where
 pub async fn on_call_producer_task<
     RB: rtic::Mutex<T = RequestBuffer>,
     DPO: rtic::Mutex<T = DeadlineProtectedObject>,
->(  
+>(
     locals: &mut OnCallProducerLocals,
-    shared: &mut OnCallProducerShared<RB, DPO>,  
+    shared: &mut OnCallProducerShared<RB, DPO>,
 ) -> ! {
     activation_manager::activation_sporadic().await;
     loop {
@@ -93,36 +93,41 @@ pub async fn on_call_producer_task<
         locals.activation_writer.write(Mono::now());
         locals.activation_count += 1;
 
-        shared.request_buffer.lock( |buffer| {
+        shared.request_buffer.lock(|buffer| {
             locals.current_workload = buffer.extract();
         });
+
         #[cfg(feature = "profiling-on_call_producer")]
         locals.profiler.lap(); // Lap 1: extract workload enclosing
+
         on_call_producer_operation(locals.current_workload);
+
         #[cfg(feature = "profiling-on_call_producer")]
         locals.profiler.lap(); // Lap 2: ocp_small_whetstone 
 
         // Cancel deadline
-        shared.deadline_protected_object.lock( |dpo| {
+        shared.deadline_protected_object.lock(|dpo| {
             dpo.cancel_deadline(locals.activation_count);
         });
 
         #[cfg(feature = "profiling-on_call_producer")]
         {
+            use crate::profiling::WCET_THRESHOLD;
+
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
             }
         }
     }
-} 
+}
 
 fn on_call_producer_operation(load: u32) {
     if let Err(err) = production_workload::small_whetstone(load) {
         defmt::error!(
-                "Error computing whetstone in on call producer operation: {}",
-                err
-            );
+            "Error computing whetstone in on call producer operation: {}",
+            err
+        );
     }
     defmt::info!("End of sporadic activation.");
 }

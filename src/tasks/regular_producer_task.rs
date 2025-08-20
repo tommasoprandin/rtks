@@ -1,8 +1,9 @@
+#[cfg(feature = "profiling-regular_producer")]
+use crate::profiling::{Profiler as _, regular_producer::RegularProducerProfiler};
 use crate::{
     activation_manager, auxiliary,
     deadline::DeadlineProtectedObject,
     production_workload,
-    profiling::{Profiler as _, RegularProducerProfiler},
     resources::{request_buffer::RequestBuffer, task_semaphore::TaskSemaphoreSignaler},
     time::{Instant, Mono},
 };
@@ -21,6 +22,7 @@ pub struct RegularProducerLocals {
     activation_log_reader_signaler: TaskSemaphoreSignaler<'static>,
     next_time: Instant,
     activation_count: u32,
+    #[cfg(feature = "profiling-regular_producer")]
     profiler: RegularProducerProfiler,
 }
 
@@ -34,7 +36,7 @@ impl RegularProducerLocals {
             activation_log_reader_signaler: alr_signaler,
             next_time: Mono::now(),
             activation_count: 0,
-            profiler: RegularProducerProfiler::new("Regular producer profiler", stopwatch),
+            profiler: RegularProducerProfiler::new(stopwatch),
         }
     }
 
@@ -44,7 +46,6 @@ impl RegularProducerLocals {
             activation_log_reader_signaler: alr_signaler,
             next_time: Mono::now(),
             activation_count: 0,
-            profiler: RegularProducerProfiler::new(),
         }
     }
 }
@@ -80,7 +81,9 @@ pub async fn regular_producer_task<
 ) -> ! {
     activation_manager::activation_cyclic().await;
     loop {
+        #[cfg(feature = "profiling-regular_producer")]
         locals.profiler.reset();
+
         locals.next_time = Mono::now() + PERIOD.millis();
         locals.activation_count += 1;
 
@@ -92,6 +95,8 @@ pub async fn regular_producer_task<
                 err
             );
         }
+
+        #[cfg(feature = "profiling-regular_producer")]
         locals.profiler.lap(); // Lap 1: Workload execution
 
         // Helper tasks activations
@@ -114,9 +119,16 @@ pub async fn regular_producer_task<
             dpo.cancel_deadline(locals.activation_count);
         });
 
-        locals.profiler.lap(); // Lap 2: Total response time
+        #[cfg(feature = "profiling-regular_producer")]
+        {
+            use crate::profiling::WCET_THRESHOLD;
 
-        locals.profiler.log();
+            locals.profiler.lap(); // Lap 2: Total response time
+            locals.profiler.update_wcet();
+            if locals.activation_count == WCET_THRESHOLD {
+                locals.profiler.log();
+            }
+        }
 
         Mono::delay_until(locals.next_time).await;
     }
