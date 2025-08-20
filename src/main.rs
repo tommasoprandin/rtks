@@ -58,6 +58,7 @@ mod app {
         },
         tasks::{
             self,
+            on_call_producer_task::{OnCallProducerLocals, OnCallProducerShared},
             regular_producer_task::{RegularProducerLocals, RegularProducerShared},
         },
         time::{Instant, Mono},
@@ -72,7 +73,7 @@ mod app {
         feature = "profiling-activation_log",
         feature = "profiling-request_buffer",
     ))]
-    use stm32f4xx_hal::dwt::{Dwt, DwtExt, StopWatch};
+    use stm32f4xx_hal::dwt::{Dwt, DwtExt};
 
     use stm32f4xx_hal::{interrupt, pac::NVIC, rcc::RccExt};
 
@@ -98,20 +99,11 @@ mod app {
         external_event_server_activation_writer: SignalWriter<'static, Instant>,
         external_event_server_activation_count: u32,
         // Activation_Log_Reader
-        activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
+        activation_log_reader_waiter: TaskSemaphoreWaiter<'static>, 
         activation_log_reader_activation_writer: SignalWriter<'static, Instant>,
         activation_log_reader_activation_count: u32,
         // On_Call_Producer
-        current_workload: u32,
-        barrier_reader: SignalReader<'static, ()>,
-        on_call_producer_activation_writer: SignalWriter<'static, Instant>,
-        on_call_producer_activation_count: u32,
-        #[cfg(feature = "profiling-on_call_producer")]
-        wc_extract_workload: u32,
-        #[cfg(feature = "profiling-on_call_producer")]
-        wc_ocp_small_whetstone: u32,
-        #[cfg(feature = "profiling-on_call_producer")]
-        on_call_producer_stopwatch: StopWatch<'static>,
+        on_call_producer_locals: OnCallProducerLocals,
         // Regular_Producer
         regular_producer_locals: RegularProducerLocals,
         // Activation_Log_Reader_Deadline_Miss_Handler
@@ -247,17 +239,12 @@ mod app {
                 activation_log_reader_activation_writer,
                 activation_log_reader_activation_count: 0,
                 // On_Call_Producer
-                current_workload: 0,
-                barrier_reader,
-                on_call_producer_activation_writer,
-                on_call_producer_activation_count: 0,
-                #[cfg(feature = "profiling-on_call_producer")]
-                wc_extract_workload: 0,
-                #[cfg(feature = "profiling-on_call_producer")]
-                wc_ocp_small_whetstone: 0,
-                #[cfg(feature = "profiling-on_call_producer")]
-                on_call_producer_stopwatch: dwt
-                    .stopwatch(cx.local.on_call_producer_activation_times),
+                on_call_producer_locals: OnCallProducerLocals::new(
+                    barrier_reader,
+                    on_call_producer_activation_writer,
+                    #[cfg(feature = "profiling-on_call_producer")]
+                    dwt.stopwatch(cx.local.on_call_producer_activation_times),
+                ),
                 // Regular_Producer
                 regular_producer_locals: RegularProducerLocals::new(
                     activation_log_reader_signaler,
@@ -308,21 +295,14 @@ mod app {
         .await;
     }
 
-    #[task(priority = 5, local = [current_workload, barrier_reader, on_call_producer_activation_writer, on_call_producer_activation_count, wc_extract_workload, wc_ocp_small_whetstone, on_call_producer_stopwatch], shared = [request_buffer, on_call_producer_deadline_protected_object])]
-    async fn on_call_producer(mut cx: on_call_producer::Context) {
+    #[task(priority = 5, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
+    async fn on_call_producer(cx: on_call_producer::Context) {
         tasks::on_call_producer_task::on_call_producer_task(
-            &mut cx.shared.request_buffer,
-            cx.local.current_workload,
-            cx.local.barrier_reader,
-            &mut cx.local.on_call_producer_activation_writer,
-            &mut cx.shared.on_call_producer_deadline_protected_object,
-            &mut cx.local.on_call_producer_activation_count,
-            #[cfg(feature = "profiling-on_call_producer")]
-            &mut cx.local.wc_extract_workload,
-            #[cfg(feature = "profiling-on_call_producer")]
-            &mut cx.local.wc_ocp_small_whetstone,
-            #[cfg(feature = "profiling-on_call_producer")]
-            &mut cx.local.on_call_producer_stopwatch,
+            cx.local.on_call_producer_locals,
+            &mut OnCallProducerShared::new(
+                cx.shared.request_buffer,
+                cx.shared.on_call_producer_deadline_protected_object,
+            )    
         )
         .await;
     }

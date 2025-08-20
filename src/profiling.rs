@@ -1,10 +1,14 @@
 use rtic_monotonics::fugit::{self, ExtU64};
 use stm32f4xx_hal::dwt::StopWatch;
 
+pub const WCET_THRESHOLD: u32 = 100;
+
 pub trait Profiler {
     fn reset(&mut self);
     fn lap(&mut self);
     fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64>;
+    #[cfg(feature = "profiling-on_call_producer")]
+    fn update_wcet(&mut self);
     fn log(&self);
 }
 
@@ -19,6 +23,10 @@ pub trait Profiler {
 pub struct StopwatchProfiler {
     name: &'static str,
     stopwatch: StopWatch<'static>,
+    #[cfg(feature = "profiling-on_call_producer")]
+    wc_extract_workload: u32,
+    #[cfg(feature = "profiling-on_call_producer")]
+    wc_ocp_small_whetstone: u32,
 }
 
 #[cfg(any(
@@ -30,6 +38,12 @@ pub struct StopwatchProfiler {
     feature = "profiling-request_buffer",
 ))]
 impl StopwatchProfiler {
+    #[cfg(feature = "profiling-on_call_producer")]
+    pub fn new(name: &'static str, stopwatch: StopWatch<'static>) -> Self {
+        Self { name, stopwatch, wc_extract_workload: 0, wc_ocp_small_whetstone: 0 }
+    }
+
+    #[cfg(not(feature = "profiling-on_call_producer"))]
     pub fn new(name: &'static str, stopwatch: StopWatch<'static>) -> Self {
         Self { name, stopwatch }
     }
@@ -58,6 +72,22 @@ impl Profiler for StopwatchProfiler {
             .map(|time| time.as_micros().micros())
     }
 
+    #[cfg(feature = "profiling-on_call_producer")]
+    fn update_wcet(&mut self) {
+        self.wc_extract_workload = self.wc_extract_workload.max(self.stopwatch.lap_time(1).unwrap().as_micros() as u32);
+        self.wc_ocp_small_whetstone = self.wc_ocp_small_whetstone.max((self.stopwatch.lap_time(2).unwrap().as_micros() - self.stopwatch.lap_time(1).unwrap().as_micros()) as u32);
+    }
+
+    #[cfg(feature = "profiling-on_call_producer")]
+    fn log(&self) {
+        defmt::info!("OCP Profiling:\t
+        extract workload = {}us\t
+        ocp small whetstone = {}us", 
+        self.wc_extract_workload, 
+        self.wc_ocp_small_whetstone);
+    }
+
+    #[cfg(feature = "profiling-regular_producer")]
     fn log(&self) {
         let mut lap = 1;
         while let Some(time) = self.stopwatch.lap_time(lap) {
@@ -65,13 +95,12 @@ impl Profiler for StopwatchProfiler {
             lap += 1;
         }
     }
-}
+} 
 
 #[cfg(not(all(
     feature = "profiling-regular_producer",
     feature = "profiling-activation_log_reader",
     feature = "profiling-external_event_server",
-    feature = "profiling-on_call_producer",
     feature = "profiling-activation_log",
     feature = "profiling-request_buffer",
 )))]
@@ -81,7 +110,6 @@ pub struct NoOpProfiler;
     feature = "profiling-regular_producer",
     feature = "profiling-activation_log_reader",
     feature = "profiling-external_event_server",
-    feature = "profiling-on_call_producer",
     feature = "profiling-activation_log",
     feature = "profiling-request_buffer",
 )))]
@@ -95,7 +123,6 @@ impl NoOpProfiler {
     feature = "profiling-regular_producer",
     feature = "profiling-activation_log_reader",
     feature = "profiling-external_event_server",
-    feature = "profiling-on_call_producer",
     feature = "profiling-activation_log",
     feature = "profiling-request_buffer",
 )))]
@@ -107,6 +134,9 @@ impl Profiler for NoOpProfiler {
     fn lap_time(&self, _lap: usize) -> Option<fugit::MicrosDurationU64> {
         None
     }
+
+    #[cfg(feature = "profiling-on_call_producer")]
+    fn update_wcet(&mut self) {}
 
     fn log(&self) {}
 }
@@ -128,8 +158,6 @@ pub type ExternalEventServerProfiler = NoOpProfiler;
 
 #[cfg(feature = "profiling-on_call_producer")]
 pub type OnCallProducerProfiler = StopwatchProfiler;
-#[cfg(not(feature = "profiling-on_call_producer"))]
-pub type OnCallProducerProfiler = NoOpProfiler;
 
 #[cfg(feature = "profiling-activation_log")]
 pub type ActivationLogProfiler = StopwatchProfiler;

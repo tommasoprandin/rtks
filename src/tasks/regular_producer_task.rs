@@ -7,6 +7,8 @@ use crate::{
     time::{Instant, Mono},
 };
 use rtic_monotonics::{Monotonic, fugit::ExtU32};
+#[cfg(feature = "profiling-regular_producer")]
+use stm32f4xx_hal::dwt::StopWatch;
 
 pub const PERIOD: u32 = 1_000;
 pub const DEADLINE: u32 = 500;
