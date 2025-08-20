@@ -1,6 +1,6 @@
 [env]
 DEFMT_LOG = "info"
-CARGO_TARGET_MODE = "board"
+CARGO_TARGET_MODE = "qemu"
 
 [build]
 target = "thumbv7em-none-eabihf"

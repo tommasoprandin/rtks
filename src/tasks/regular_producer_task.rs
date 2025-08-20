@@ -64,10 +64,10 @@ where
     RB: rtic::Mutex<T = RequestBuffer>,
     DPO: rtic::Mutex<T = DeadlineProtectedObject>,
 {
-    pub fn new(request_buffer: RB, deadline_po: DPO) -> Self {
+    pub fn new(request_buffer: RB, deadline_protected_object: DPO) -> Self {
         Self {
             request_buffer,
-            deadline_protected_object: deadline_po,
+            deadline_protected_object,
         }
     }
 }

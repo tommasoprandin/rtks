@@ -47,12 +47,13 @@ mod app {
         },
         resources::{
             activation_log::ActivationLog,
-            event_queue::{EventQueue, EventQueueSignaler, EventQueueWaiter},
+            event_queue::{EventQueue, EventQueueSignaler},
             request_buffer::RequestBuffer,
             task_semaphore::{TaskSemaphore, TaskSemaphoreWaiter},
         },
         tasks::{
             self,
+            external_event_server::{ExternalEventServerLocals, ExternalEventServerShared},
             on_call_producer_task::{OnCallProducerLocals, OnCallProducerShared},
             regular_producer_task::{RegularProducerLocals, RegularProducerShared},
         },
@@ -90,9 +91,7 @@ mod app {
         // Interrupt_Handler
         event_signaler: EventQueueSignaler<'static>,
         // External_Event_Server
-        event_waiter: EventQueueWaiter<'static>,
-        external_event_server_activation_writer: SignalWriter<'static, Instant>,
-        external_event_server_activation_count: u32,
+        external_event_server_locals: ExternalEventServerLocals,
         // Activation_Log_Reader
         activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
         activation_log_reader_activation_writer: SignalWriter<'static, Instant>,
@@ -128,8 +127,10 @@ mod app {
             feature = "profiling-request_buffer",
         ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
+        #[cfg(feature = "profiling-external_event_server")]
+        external_event_server_times: [u32; 2] = [0; 2],
         #[cfg(feature = "profiling-on_call_producer")]
-        on_call_producer_activation_times: [u32; 2] = [0; 2],
+        on_call_producer_times: [u32; 2] = [0; 2],
         #[cfg(feature = "profiling-regular_producer")]
         regular_producer_times: [u32; 3] = [0; 3],
         activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
@@ -226,9 +227,12 @@ mod app {
                 // Initialization of local resources go here
                 event_signaler,
                 // External_Event_Server
-                event_waiter,
-                external_event_server_activation_writer,
-                external_event_server_activation_count: 0,
+                external_event_server_locals: ExternalEventServerLocals::new(
+                    event_waiter,
+                    external_event_server_activation_writer,
+                    #[cfg(feature = "profiling-external_event_server")]
+                    dwt.stopwatch(cx.local.external_event_server_times),
+                ),
                 // Activation_Log_Reader
                 activation_log_reader_waiter,
                 activation_log_reader_activation_writer,
@@ -238,7 +242,7 @@ mod app {
                     barrier_reader,
                     on_call_producer_activation_writer,
                     #[cfg(feature = "profiling-on_call_producer")]
-                    dwt.stopwatch(cx.local.on_call_producer_activation_times),
+                    dwt.stopwatch(cx.local.on_call_producer_times),
                 ),
                 // Regular_Producer
                 regular_producer_locals: RegularProducerLocals::new(
@@ -278,14 +282,14 @@ mod app {
         .await;
     }
 
-    #[task(priority = 11, local=[event_waiter, external_event_server_activation_writer, external_event_server_activation_count], shared=[activation_log, external_event_server_deadline_protected_object])]
-    async fn external_event_server(mut cx: external_event_server::Context) -> ! {
+    #[task(priority = 11, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
+    async fn external_event_server(cx: external_event_server::Context) -> ! {
         tasks::external_event_server::external_event_server(
-            cx.local.event_waiter,
-            &mut cx.shared.activation_log,
-            &mut cx.local.external_event_server_activation_writer,
-            &mut cx.shared.external_event_server_deadline_protected_object,
-            &mut cx.local.external_event_server_activation_count,
+            cx.local.external_event_server_locals,
+            &mut ExternalEventServerShared::new(
+                cx.shared.activation_log,
+                cx.shared.external_event_server_deadline_protected_object,
+            ),
         )
         .await;
     }
@@ -372,7 +376,7 @@ mod app {
         }
         activation_manager::activation_cyclic().await;
         loop {
-            let next_time = Mono::now() + 10.secs();
+            let next_time = Mono::now() + 500.millis();
             NVIC::pend(interrupt::USART1);
             defmt::info!("USART1 interrupt generated");
             Mono::delay_until(next_time).await;

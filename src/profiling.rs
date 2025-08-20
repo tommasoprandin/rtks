@@ -96,11 +96,69 @@ pub mod regular_producer {
             defmt::info!(
                 "
                 Regular producer profiling:
-                worst case workload = {}us
-                worst case activations = {}us
+                worst case workload = {}
+                worst case activations = {}
             ",
                 self.wc_workload_time,
                 self.wc_activations_time
+            );
+        }
+    }
+}
+
+#[cfg(feature = "profiling-external_event_server")]
+pub mod external_event_server {
+    use core::cmp::max;
+
+    use rtic_monotonics::fugit::{self, ExtU64};
+    use stm32f4xx_hal::dwt::StopWatch;
+
+    use crate::profiling::Profiler;
+
+    pub struct ExternalEventServerProfiler {
+        stopwatch: StopWatch<'static>,
+        wc_log_write_time: Option<fugit::MicrosDurationU64>,
+    }
+
+    impl ExternalEventServerProfiler {
+        pub fn new(stopwatch: StopWatch<'static>) -> Self {
+            Self {
+                stopwatch,
+                wc_log_write_time: None,
+            }
+        }
+    }
+
+    impl Profiler for ExternalEventServerProfiler {
+        fn reset(&mut self) {
+            self.stopwatch.reset();
+        }
+
+        fn lap(&mut self) {
+            self.stopwatch.lap();
+        }
+
+        fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64> {
+            self.stopwatch.lap_time(lap).map(|d| d.as_micros().micros())
+        }
+
+        fn update_wcet(&mut self) {
+            let current_log_write_time = self.lap_time(1);
+            if let Some(current) = current_log_write_time {
+                self.wc_log_write_time = Some(
+                    self.wc_log_write_time
+                        .map_or(current, |worst| max(current, worst)),
+                );
+            }
+        }
+
+        fn log(&self) {
+            defmt::info!(
+                "
+                External event server profiler:
+                worst case log write = {}
+            ",
+                self.wc_log_write_time,
             );
         }
     }
@@ -165,8 +223,8 @@ pub mod on_call_producer {
             defmt::info!(
                 "
                 Regular producer profiling:
-                worst case workload = {}us
-                worst case extract = {}us
+                worst case workload = {}
+                worst case extract = {}
             ",
                 self.wc_workload_time,
                 self.wc_extract_time
