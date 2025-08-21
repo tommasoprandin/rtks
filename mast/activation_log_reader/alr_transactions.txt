@@ -16,5 +16,5 @@ Transaction (
     ( (Type => Activity,
     Input_Event => alr_activation,
     Output_Event => alro1,
-    Activity_Operation => alr_job,
+    Activity_Operation => alr_operation,
     Activity_Server => on_call_producer)));

@@ -16,5 +16,5 @@ Transaction (
         ( (Type => Activity,
         Input_Event => button_click,
         Output_Event => eeso1,
-        Activity_Operation => ees_job,
+        Activity_Operation => ees_operation,
         Activity_Server => external_event_server)));
