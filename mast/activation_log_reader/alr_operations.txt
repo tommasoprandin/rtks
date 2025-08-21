@@ -12,7 +12,7 @@ Operation (
 
 Operation (
     Type => Composite,
-    Name => alr_operation,
+    Name => alr_job,
     Composite_Operation_List =>
         ( alr_small_whetstone,
         alr_read,

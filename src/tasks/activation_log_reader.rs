@@ -1,3 +1,5 @@
+#[cfg(feature = "profiling-activation_log_reader")]
+use crate::profiling::{Profiler as _, activation_log_reader::ActivationLogReaderProfiler};
 use crate::{
     activation_manager,
     resources::{
@@ -10,23 +12,89 @@ use crate::{
 };
 use rtic_sync::signal::SignalWriter;
 use rtic_monotonics::Monotonic;
+#[cfg(feature = "profiling-activation_log_reader")]
+use stm32f4xx_hal::dwt::StopWatch;
 
 pub const DEADLINE: u32 = 1_000;
 
-pub async fn activation_log_reader(
-    semaphore: &mut TaskSemaphoreWaiter<'_>,
-    activation_log: &mut impl rtic::Mutex<T = ActivationLog>,
-    activation_writer: &mut SignalWriter<'static, Instant>,
-    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
-    activation_count: &mut u32,
+pub struct ActivationLogReaderLocals {
+    semaphore: TaskSemaphoreWaiter<'static>,
+    activation_writer: SignalWriter<'static, Instant>,
+    activation_count: u32,
+    #[cfg(feature = "profiling-activation_log_reader")]
+    profiler: ActivationLogReaderProfiler,
+}
+
+impl ActivationLogReaderLocals {
+    #[cfg(feature = "profiling-activation_log_reader")]
+    pub fn new(
+        semaphore: TaskSemaphoreWaiter<'static>,
+        activation_writer: SignalWriter<'static, Instant>,
+        stopwatch: StopWatch<'static>,
+    ) -> Self {
+        Self {
+            semaphore,
+            activation_writer,
+            activation_count: 0,
+            profiler: ActivationLogReaderProfiler::new(stopwatch),
+        }
+    }
+
+    #[cfg(not(feature = "profiling-activation_log_reader"))]
+    pub fn new(
+        semaphore: TaskSemaphoreWaiter<'static>,
+        activation_writer: SignalWriter<'static, Instant>,
+    ) -> Self {
+        Self {
+            semaphore,
+            activation_writer,
+            activation_count: 0,
+        }
+    }
+}
+
+pub struct ActivationLogReaderShared<AL, DPO> 
+where
+    AL: rtic::Mutex<T = ActivationLog>,
+    DPO: rtic::Mutex<T = DeadlineProtectedObject>,
+{
+    activation_log: AL,
+    deadline_protected_object: DPO,
+}
+
+impl<AL, DPO> ActivationLogReaderShared<AL, DPO>
+where
+    AL: rtic::Mutex<T = ActivationLog>,
+    DPO: rtic::Mutex<T = DeadlineProtectedObject>,
+{
+    pub fn new(
+        activation_log: AL,
+        deadline_protected_object: DPO,
+    ) -> Self {
+        Self {
+            activation_log,
+            deadline_protected_object,
+        }
+    }
+}
+
+pub async fn activation_log_reader<
+    AL: rtic::Mutex<T = ActivationLog>,
+    DPO: rtic::Mutex<T = DeadlineProtectedObject>,
+>(
+    locals: &mut ActivationLogReaderLocals,
+    shared: &mut ActivationLogReaderShared<AL, DPO>,
 ) -> ! {
     activation_manager::activation_sporadic().await;
     loop {
-        semaphore.wait().await;
+        #[cfg(feature = "profiling-activation_log_reader")]
+        locals.profiler.reset();
+
+        locals.semaphore.wait().await;
 
         // Signal activation to the deadline watchdog
-        activation_writer.write(Mono::now());
-        *activation_count += 1;
+        locals.activation_writer.write(Mono::now());
+        locals.activation_count += 1;
 
         if let Err(err) = production_workload::small_whetstone(1_000) {
             defmt::error!(
@@ -34,18 +102,40 @@ pub async fn activation_log_reader(
                 err
             );
         }
-        activation_log.lock(|al| {
+        #[cfg(feature = "profiling-activation_log_reader")]
+        locals.profiler.lap(); // Lap 1: alr_small_whetstone
+
+        shared.activation_log.lock(|al| {
+            #[cfg(feature = "profiling-activation_log_reader")]
+            locals.profiler.lap(); // Lap 2: start al_read
+            
             let (activations, last) = al.read();
+            
+            #[cfg(feature = "profiling-activation_log_reader")]
+            locals.profiler.lap(); // Lap 3: end al_read
+
             defmt::info!(
                 "Activation log reader: activations = {}, last = {}",
                 activations,
                 last
             );
         });
+        #[cfg(feature = "profiling-activation_log_reader")]
+        locals.profiler.lap(); // Lap 4: alr_read
 
         // Cancel deadline
-        deadline_protected_object.lock( |dpo| {
-            dpo.cancel_deadline(*activation_count);
+        shared.deadline_protected_object.lock(|dpo| {
+            dpo.cancel_deadline(locals.activation_count);
         });
+
+        #[cfg(feature = "profiling-activation_log_reader")]
+        {
+            use crate::profiling::WCET_THRESHOLD;
+
+            locals.profiler.update_wcet();
+            if locals.activation_count == WCET_THRESHOLD {
+                locals.profiler.log();
+            }
+        }
     }
 }

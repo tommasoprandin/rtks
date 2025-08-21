@@ -16,3 +16,11 @@ Operation (
     Composite_Operation_List =>
         (ocp_small_whetstone,
         put_line));
+
+Operation (
+    Type => Composite,
+    Name => ocp_job,
+    Composite_Operation_List =>
+        (extract_workload,
+        ocp_operation);
+)

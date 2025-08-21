@@ -67,7 +67,10 @@ where
     RB: rtic::Mutex<T = RequestBuffer>,
     DPO: rtic::Mutex<T = DeadlineProtectedObject>,
 {
-    pub fn new(request_buffer: RB, deadline_protected_object: DPO) -> Self {
+    pub fn new(
+        request_buffer: RB,
+        deadline_protected_object: DPO
+    ) -> Self {
         Self {
             request_buffer,
             deadline_protected_object,
@@ -84,26 +87,39 @@ pub async fn on_call_producer_task<
 ) -> ! {
     activation_manager::activation_sporadic().await;
     loop {
-        #[cfg(feature = "profiling-on_call_producer")]
-        locals.profiler.reset();
-
         locals.barrier_reader.wait().await;
 
         // Signal activation to the deadline watchdog
         locals.activation_writer.write(Mono::now());
         locals.activation_count += 1;
 
+        #[cfg(feature = "profiling-on_call_producer")]
+        locals.profiler.reset();
+
         shared.request_buffer.lock(|buffer| {
+            #[cfg(feature = "profiling-on_call_producer")]
+            locals.profiler.lap(); // Lap 1: start rb_extract
             locals.current_workload = buffer.extract();
+            #[cfg(feature = "profiling-on_call_producer")]
+            locals.profiler.lap(); // Lap 2: end rb_extract
         });
-
         #[cfg(feature = "profiling-on_call_producer")]
-        locals.profiler.lap(); // Lap 1: extract workload enclosing
+        locals.profiler.lap(); // Lap 3: extract workload enclosing
 
-        on_call_producer_operation(locals.current_workload);
-
+        // BEGIN ON_CALL_PRODUCER_OPERATION
+        if let Err(err) = production_workload::small_whetstone(locals.current_workload) {
+        defmt::error!(
+                "Error computing whetstone in on call producer operation: {}",
+                err
+            );
+        }
         #[cfg(feature = "profiling-on_call_producer")]
-        locals.profiler.lap(); // Lap 2: ocp_small_whetstone 
+        locals.profiler.lap(); // Lap 4: ocp_small_whetstone 
+
+        defmt::info!("End of sporadic activation.");
+        #[cfg(feature = "profiling-on_call_producer")]
+        locals.profiler.lap(); // Lap 5: put_line
+        // END ON_CALL_PRODUCER_OPERATION
 
         // Cancel deadline
         shared.deadline_protected_object.lock(|dpo| {
@@ -120,14 +136,4 @@ pub async fn on_call_producer_task<
             }
         }
     }
-}
-
-fn on_call_producer_operation(load: u32) {
-    if let Err(err) = production_workload::small_whetstone(load) {
-        defmt::error!(
-            "Error computing whetstone in on call producer operation: {}",
-            err
-        );
-    }
-    defmt::info!("End of sporadic activation.");
 }

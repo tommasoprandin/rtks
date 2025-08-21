@@ -39,7 +39,7 @@ Operation (
 
 Operation (
     Type => Composite,
-    Name => rp_operation,
+    Name => rp_job,
     Composite_Operation_List =>
         (rp_small_whetstone,
         due_activation,

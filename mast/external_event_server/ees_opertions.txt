@@ -7,6 +7,6 @@ Operation (
 
 Operation (
     Type => Composite,
-    Name => ees_operation,
+    Name => ees_job,
     Composite_Operation_List =>
         ( ees_write ));

@@ -35,8 +35,6 @@ mod app {
         feature = "profiling-external_event_server",
         feature = "profiling-on_call_producer",
         feature = "profiling-regular_producer",
-        feature = "profiling-activation_log",
-        feature = "profiling-request_buffer",
     ))]
     use core::mem::MaybeUninit;
 
@@ -53,6 +51,7 @@ mod app {
         },
         tasks::{
             self,
+            activation_log_reader::{ActivationLogReaderLocals, ActivationLogReaderShared},
             external_event_server::{ExternalEventServerLocals, ExternalEventServerShared},
             on_call_producer_task::{OnCallProducerLocals, OnCallProducerShared},
             regular_producer_task::{RegularProducerLocals, RegularProducerShared},
@@ -66,8 +65,6 @@ mod app {
         feature = "profiling-external_event_server",
         feature = "profiling-on_call_producer",
         feature = "profiling-regular_producer",
-        feature = "profiling-activation_log",
-        feature = "profiling-request_buffer",
     ))]
     use stm32f4xx_hal::dwt::{Dwt, DwtExt};
 
@@ -93,9 +90,7 @@ mod app {
         // External_Event_Server
         external_event_server_locals: ExternalEventServerLocals,
         // Activation_Log_Reader
-        activation_log_reader_waiter: TaskSemaphoreWaiter<'static>,
-        activation_log_reader_activation_writer: SignalWriter<'static, Instant>,
-        activation_log_reader_activation_count: u32,
+        activation_log_reader_locals: ActivationLogReaderLocals,
         // On_Call_Producer
         on_call_producer_locals: OnCallProducerLocals,
         // Regular_Producer
@@ -123,14 +118,14 @@ mod app {
             feature = "profiling-external_event_server",
             feature = "profiling-on_call_producer",
             feature = "profiling-regular_producer",
-            feature = "profiling-activation_log",
-            feature = "profiling-request_buffer",
         ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
+        #[cfg(feature = "profiling-activation_log_reader")]
+        activation_log_reader_times: [u32; 4] = [0; 4],
         #[cfg(feature = "profiling-external_event_server")]
         external_event_server_times: [u32; 2] = [0; 2],
         #[cfg(feature = "profiling-on_call_producer")]
-        on_call_producer_times: [u32; 2] = [0; 2],
+        on_call_producer_times: [u32; 5] = [0; 5],
         #[cfg(feature = "profiling-regular_producer")]
         regular_producer_times: [u32; 3] = [0; 3],
         activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
@@ -156,8 +151,6 @@ mod app {
             feature = "profiling-activation_log_reader",
             feature = "profiling-on_call_producer",
             feature = "profiling-regular_producer",
-            feature = "profiling-activation_log",
-            feature = "profiling-request_buffer",
         ))]
         let dwt = unsafe {
             let dwt = core.DWT.constrain(core.DCB, &clocks);
@@ -234,9 +227,12 @@ mod app {
                     dwt.stopwatch(cx.local.external_event_server_times),
                 ),
                 // Activation_Log_Reader
-                activation_log_reader_waiter,
-                activation_log_reader_activation_writer,
-                activation_log_reader_activation_count: 0,
+                activation_log_reader_locals: ActivationLogReaderLocals::new(
+                    activation_log_reader_waiter,
+                    activation_log_reader_activation_writer,
+                    #[cfg(feature = "profiling-activation_log_reader")]
+                    dwt.stopwatch(cx.local.activation_log_reader_times),
+                ),
                 // On_Call_Producer
                 on_call_producer_locals: OnCallProducerLocals::new(
                     barrier_reader,
@@ -270,14 +266,14 @@ mod app {
         )
     }
 
-    #[task(priority = 3, local=[activation_log_reader_waiter, activation_log_reader_activation_writer, activation_log_reader_activation_count], shared=[activation_log, activation_log_reader_deadline_protected_object])]
+    #[task(priority = 3, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader(mut cx: activation_log_reader::Context) -> ! {
         tasks::activation_log_reader::activation_log_reader(
-            cx.local.activation_log_reader_waiter,
-            &mut cx.shared.activation_log,
-            &mut cx.local.activation_log_reader_activation_writer,
-            &mut cx.shared.activation_log_reader_deadline_protected_object,
-            &mut cx.local.activation_log_reader_activation_count,
+            cx.local.activation_log_reader_locals,
+            &mut ActivationLogReaderShared::new(
+                cx.shared.activation_log,
+                cx.shared.activation_log_reader_deadline_protected_object,
+            ),
         )
         .await;
     }
