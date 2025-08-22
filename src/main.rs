@@ -41,7 +41,11 @@ mod app {
     use crate::{
         activation_manager,
         deadline::{
-            DeadlineProtectedObject, periodic_deadline_watchdog, sporadic_deadline_watchdog,
+            DeadlineProtectedObject, 
+            PeriodicDeadlineWatchdogLocals,
+            periodic_deadline_watchdog,
+            SporadicDeadlineWatchdogLocals,
+            sporadic_deadline_watchdog,
         },
         resources::{
             activation_log::ActivationLog,
@@ -96,20 +100,13 @@ mod app {
         // Regular_Producer
         regular_producer_locals: RegularProducerLocals,
         // Activation_Log_Reader_Deadline_Miss_Handler
-        activation_log_reader_activation_reader: SignalReader<'static, Instant>,
-        activation_log_reader_deadline_value: u32,
-        activation_log_reader_next_deadline: Instant,
+        activation_log_reader_watchdog_locals: SporadicDeadlineWatchdogLocals,
         // External_Event_Server_Deadline_Miss_Handler
-        external_event_server_activation_reader: SignalReader<'static, Instant>,
-        external_event_server_deadline_value: u32,
-        external_event_server_next_deadline: Instant,
+        external_event_server_watchdog_locals: SporadicDeadlineWatchdogLocals,
         // On_Call_Producer_Deadline_Miss_Handler
-        on_call_producer_activation_reader: SignalReader<'static, Instant>,
-        on_call_producer_deadline_value: u32,
-        on_call_producer_next_deadline: Instant,
+        on_call_producer_watchdog_locals: SporadicDeadlineWatchdogLocals,
         // Regular_Producer_Deadline_Miss_Handler
-        regular_producer_period: u32,
-        regular_producer_next_deadline: Instant,
+        regular_producer_watchdog_locals: PeriodicDeadlineWatchdogLocals,
     }
 
     #[init(local = [
@@ -160,6 +157,8 @@ mod app {
 
         // Setup monotonic timer
         Mono::start(core.SYST, clocks.sysclk().to_Hz());
+        // Setup ACTIVATION_INSTANT
+        activation_manager::set_activation_time();
 
         // Setup event queue
         let (event_waiter, event_signaler) = EventQueue::init();
@@ -247,27 +246,35 @@ mod app {
                     dwt.stopwatch(cx.local.regular_producer_times),
                 ),
                 // Activation_Log_Reader_Deadline_Miss_Handler
-                activation_log_reader_activation_reader,
-                activation_log_reader_deadline_value: tasks::activation_log_reader::DEADLINE,
-                activation_log_reader_next_deadline: Instant::from_ticks(0),
+                activation_log_reader_watchdog_locals: SporadicDeadlineWatchdogLocals::new(
+                    activation_log_reader_activation_reader,
+                    None,
+                    tasks::activation_log_reader::DEADLINE,
+                ),
                 // External_Event_Server_Deadline_Miss_Handler
-                external_event_server_activation_reader,
-                external_event_server_deadline_value: tasks::external_event_server::DEADLINE,
-                external_event_server_next_deadline: Instant::from_ticks(0),
+                external_event_server_watchdog_locals: SporadicDeadlineWatchdogLocals::new(
+                    external_event_server_activation_reader,
+                    None,
+                    tasks::external_event_server::DEADLINE,
+                ),
                 // On_Call_Producer_Deadline_Miss_Handler
-                on_call_producer_activation_reader,
-                on_call_producer_deadline_value: tasks::on_call_producer_task::DEADLINE,
-                on_call_producer_next_deadline: Instant::from_ticks(0),
+                on_call_producer_watchdog_locals: SporadicDeadlineWatchdogLocals::new(
+                    on_call_producer_activation_reader,
+                    None,
+                    tasks::on_call_producer_task::DEADLINE,
+                ),
                 // Regular_Producer_Deadline_Miss_Handler
-                regular_producer_period: tasks::regular_producer_task::PERIOD,
-                regular_producer_next_deadline: activation_manager::activation_time()
-                    + tasks::regular_producer_task::DEADLINE.millis(),
+                regular_producer_watchdog_locals: PeriodicDeadlineWatchdogLocals::new(
+                    Some(activation_manager::get_activation_instant()
+                        + tasks::regular_producer_task::DEADLINE.millis()),
+                    tasks::regular_producer_task::PERIOD,
+                ),
             },
         )
     }
 
     #[task(priority = 3, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
-    async fn activation_log_reader(mut cx: activation_log_reader::Context) -> ! {
+    async fn activation_log_reader(cx: activation_log_reader::Context) -> ! {
         tasks::activation_log_reader::activation_log_reader(
             cx.local.activation_log_reader_locals,
             &mut ActivationLogReaderShared::new(
@@ -314,53 +321,46 @@ mod app {
         .await;
     }
 
-    #[task(priority = 12, local = [activation_log_reader_activation_reader, activation_log_reader_next_deadline, activation_log_reader_deadline_value], shared =[activation_log_reader_deadline_protected_object])]
+    #[task(priority = 12, local = [activation_log_reader_watchdog_locals], shared =[activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader_deadline_miss_handler(
         mut cx: activation_log_reader_deadline_miss_handler::Context,
     ) -> ! {
         sporadic_deadline_watchdog(
+            cx.local.activation_log_reader_watchdog_locals,
             &mut cx.shared.activation_log_reader_deadline_protected_object,
-            &mut cx.local.activation_log_reader_activation_reader,
-            &mut cx.local.activation_log_reader_next_deadline,
-            *cx.local.activation_log_reader_deadline_value,
         )
         .await;
     }
 
-    #[task(priority = 12, local = [external_event_server_activation_reader, external_event_server_next_deadline, external_event_server_deadline_value], shared =[external_event_server_deadline_protected_object])]
+    #[task(priority = 12, local = [external_event_server_watchdog_locals], shared =[external_event_server_deadline_protected_object])]
     async fn external_event_server_deadline_miss_handler(
         mut cx: external_event_server_deadline_miss_handler::Context,
     ) -> ! {
         sporadic_deadline_watchdog(
+            cx.local.external_event_server_watchdog_locals,
             &mut cx.shared.external_event_server_deadline_protected_object,
-            &mut cx.local.external_event_server_activation_reader,
-            &mut cx.local.external_event_server_next_deadline,
-            *cx.local.external_event_server_deadline_value,
         )
         .await;
     }
 
-    #[task(priority = 12, local = [on_call_producer_activation_reader, on_call_producer_next_deadline, on_call_producer_deadline_value], shared =[on_call_producer_deadline_protected_object])]
+    #[task(priority = 12, local = [on_call_producer_watchdog_locals], shared =[on_call_producer_deadline_protected_object])]
     async fn on_call_producer_deadline_miss_handler(
         mut cx: on_call_producer_deadline_miss_handler::Context,
     ) -> ! {
         sporadic_deadline_watchdog(
+            cx.local.on_call_producer_watchdog_locals,
             &mut cx.shared.on_call_producer_deadline_protected_object,
-            &mut cx.local.on_call_producer_activation_reader,
-            &mut cx.local.on_call_producer_next_deadline,
-            *cx.local.on_call_producer_deadline_value,
         )
         .await;
     }
 
-    #[task(priority = 12, local = [regular_producer_next_deadline, regular_producer_period], shared =[regular_producer_deadline_protected_object])]
+    #[task(priority = 12, local = [regular_producer_watchdog_locals], shared =[regular_producer_deadline_protected_object])]
     async fn regular_producer_deadline_miss_handler(
         mut cx: regular_producer_deadline_miss_handler::Context,
     ) -> ! {
         periodic_deadline_watchdog(
+            cx.local.regular_producer_watchdog_locals,
             &mut cx.shared.regular_producer_deadline_protected_object,
-            &mut cx.local.regular_producer_next_deadline,
-            *cx.local.regular_producer_period,
         )
         .await;
     }

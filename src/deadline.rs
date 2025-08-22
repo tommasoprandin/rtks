@@ -54,34 +54,80 @@ impl DeadlineProtectedObject {
 }
 
 // DEADLINE MISS HANDLERS TASKS
-pub async fn periodic_deadline_watchdog(
-    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
-    next_deadline: &mut Instant, 
+// Periodic
+pub struct PeriodicDeadlineWatchdogLocals {
+    next_deadline: Option<Instant>,
     period: u32,
+}
+
+impl PeriodicDeadlineWatchdogLocals {
+    pub fn new(
+        next_deadline: Option<Instant>,
+        period: u32,
+    ) -> Self {
+        return PeriodicDeadlineWatchdogLocals {
+            next_deadline,
+            period,
+        };
+    }
+}
+pub async fn periodic_deadline_watchdog(
+    locals: &mut PeriodicDeadlineWatchdogLocals,
+    deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
 ) -> ! {
     // Watchdog control loop
     loop {
-        Mono::delay_until(*next_deadline).await;
+        if let Some(deadline) = locals.next_deadline {
+            Mono::delay_until(deadline).await;
+        } else {
+            defmt::error!("PeriodicDeadlineWatchdog: next_deadline is None");
+            loop {
+                Mono::delay_until(Mono::now() + u32::MAX.millis()).await;
+            }
+        }
 
         deadline_protected_object.lock(|dpo| {
             dpo.deadline_miss_detected();
         });
 
-        *next_deadline += period.millis();
+        if let Some(deadline) = locals.next_deadline {
+            locals.next_deadline = Some(deadline + locals.period.millis());
+        }
+    }
+}
+
+// Sporadic
+pub struct SporadicDeadlineWatchdogLocals {
+    activation_reader: SignalReader<'static, Instant>,
+    next_deadline: Option<Instant>,
+    deadline: u32,
+}
+
+impl SporadicDeadlineWatchdogLocals {
+    pub fn new(
+        activation_reader: SignalReader<'static, Instant>,
+        next_deadline: Option<Instant>,
+        deadline: u32,
+    ) -> Self {
+        return SporadicDeadlineWatchdogLocals {
+            activation_reader,
+            next_deadline,
+            deadline,
+        };
     }
 }
 
 pub async fn sporadic_deadline_watchdog(
+    locals: &mut SporadicDeadlineWatchdogLocals,
     deadline_protected_object: &mut impl rtic::Mutex<T = DeadlineProtectedObject>,
-    activation_reader: &mut SignalReader<'static, Instant>,
-    next_deadline: &mut Instant, 
-    deadline: u32,
 ) -> ! {
     // Watchdog control loop
     loop {
-        *next_deadline = activation_reader.wait().await + deadline.millis();
+        locals.next_deadline = Some(locals.activation_reader.wait().await + locals.deadline.millis());
         
-        Mono::delay_until(*next_deadline).await;
+        if let Some(deadline) = locals.next_deadline {
+            Mono::delay_until(deadline).await;
+        }
 
         deadline_protected_object.lock(|dpo| {
             dpo.deadline_miss_detected();
