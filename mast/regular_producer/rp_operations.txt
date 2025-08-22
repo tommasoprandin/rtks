@@ -1,10 +1,5 @@
 Operation (
     Type => Simple,
-    Name => rp_activation_calculations,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation (
-    Type => Simple,
     Name => rp_small_whetstone,
     Worst_Case_Execution_Time => 2.000E-06);
 

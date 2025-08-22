@@ -92,14 +92,18 @@ pub async fn external_event_server<
         locals.profiler.reset();
 
         shared.activation_log.lock(|al| {
+            #[cfg(feature = "profiling-external_event_server")]
+            locals.profiler.lap(); // Lap 1: start al_write
             al.write();
+            #[cfg(feature = "profiling-external_event_server")]
+            locals.profiler.lap(); // Lap 2: end al_write
         });
 
         #[cfg(feature = "profiling-external_event_server")]
         {
             use crate::profiling::WCET_THRESHOLD;
 
-            locals.profiler.lap();
+            locals.profiler.lap(); // Lap 3: ees_write
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();

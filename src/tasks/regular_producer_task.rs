@@ -95,22 +95,36 @@ pub async fn regular_producer_task<
                 err
             );
         }
-
         #[cfg(feature = "profiling-regular_producer")]
-        locals.profiler.lap(); // Lap 1: Workload execution
+        locals.profiler.lap(); // Lap 1: rp_small_whetstone
 
         // Helper tasks activations
         if auxiliary::due_activation(ACTIVATION_CONDITION) {
+            #[cfg(feature = "profiling-regular_producer")]
+            locals.profiler.lap(); // Lap 2: due_activation
+
             // on_call_producer activation
             shared.request_buffer.lock(|buffer| {
+                #[cfg(feature = "profiling-regular_producer")]
+                locals.profiler.lap(); // Lap 3: start rb_deposit
                 if !buffer.deposit(ON_CALL_PRODUCER_WORKLOAD) {
                     defmt::info!("Failed sporadic activation.");
                 }
-            })
+                #[cfg(feature = "profiling-regular_producer")]
+                locals.profiler.lap(); // Lap 4: end rb_deposit
+            });
+            #[cfg(feature = "profiling-regular_producer")]
+            locals.profiler.lap(); // Lap 5: ocp_activation
         }
         if auxiliary::check_due() {
+            #[cfg(feature = "profiling-regular_producer")]
+            locals.profiler.lap(); // Lap 6: check_due
+
             locals.activation_log_reader_signaler.signal();
+            #[cfg(feature = "profiling-regular_producer")]
+            locals.profiler.lap(); // Lap 7: alr_signal
         }
+
         defmt::info!("End of cyclic activation.");
         // END REGULAR_PRODUCER_OPERATION
 
@@ -123,7 +137,6 @@ pub async fn regular_producer_task<
         {
             use crate::profiling::WCET_THRESHOLD;
 
-            locals.profiler.lap(); // Lap 2: Total response time
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();

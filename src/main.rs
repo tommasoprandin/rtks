@@ -123,11 +123,11 @@ mod app {
         #[cfg(feature = "profiling-activation_log_reader")]
         activation_log_reader_times: [u32; 4] = [0; 4],
         #[cfg(feature = "profiling-external_event_server")]
-        external_event_server_times: [u32; 2] = [0; 2],
+        external_event_server_times: [u32; 3] = [0; 3],
         #[cfg(feature = "profiling-on_call_producer")]
         on_call_producer_times: [u32; 5] = [0; 5],
         #[cfg(feature = "profiling-regular_producer")]
-        regular_producer_times: [u32; 3] = [0; 3],
+        regular_producer_times: [u32; 7] = [0; 7],
         activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
