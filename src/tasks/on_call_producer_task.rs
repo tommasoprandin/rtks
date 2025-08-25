@@ -1,12 +1,10 @@
 #[cfg(feature = "profiling-on_call_producer")]
 use crate::profiling::{Profiler as _, on_call_producer::OnCallProducerProfiler};
 use crate::{
-    activation_manager,
-    deadline::DeadlineProtectedObject,
-    production_workload,
+    activation_manager, deadline::DeadlineProtectedObject, production_workload,
     resources::request_buffer::RequestBuffer,
 };
-use rtic_sync::signal::{SignalReader};
+use rtic_sync::signal::SignalReader;
 #[cfg(feature = "profiling-on_call_producer")]
 use stm32f4xx_hal::dwt::StopWatch;
 
@@ -22,10 +20,7 @@ pub struct OnCallProducerLocals {
 
 impl OnCallProducerLocals {
     #[cfg(feature = "profiling-on_call_producer")]
-    pub fn new(
-        barrier_reader: SignalReader<'static, ()>,
-        stopwatch: StopWatch<'static>,
-    ) -> Self {
+    pub fn new(barrier_reader: SignalReader<'static, ()>, stopwatch: StopWatch<'static>) -> Self {
         Self {
             current_workload: 0,
             barrier_reader,
@@ -35,9 +30,7 @@ impl OnCallProducerLocals {
     }
 
     #[cfg(not(feature = "profiling-on_call_producer"))]
-    pub fn new(
-        barrier_reader: SignalReader<'static, ()>,
-    ) -> Self {
+    pub fn new(barrier_reader: SignalReader<'static, ()>) -> Self {
         Self {
             current_workload: 0,
             barrier_reader,
@@ -60,10 +53,7 @@ where
     RB: rtic::Mutex<T = RequestBuffer>,
     DPO: rtic::Mutex<T = DeadlineProtectedObject>,
 {
-    pub fn new(
-        request_buffer: RB,
-        deadline_protected_object: DPO
-    ) -> Self {
+    pub fn new(request_buffer: RB, deadline_protected_object: DPO) -> Self {
         Self {
             request_buffer,
             deadline_protected_object,
@@ -98,7 +88,7 @@ pub async fn on_call_producer_task<
 
         // BEGIN ON_CALL_PRODUCER_OPERATION
         if let Err(err) = production_workload::small_whetstone(locals.current_workload) {
-        defmt::error!(
+            defmt::error!(
                 "Error computing whetstone in on call producer operation: {}",
                 err
             );
@@ -123,6 +113,7 @@ pub async fn on_call_producer_task<
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
+                defmt::panic!("On call producer profiling finished");
             }
         }
     }

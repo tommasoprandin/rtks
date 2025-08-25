@@ -99,29 +99,37 @@ pub async fn regular_producer_task<
         locals.profiler.lap(); // Lap 1: rp_small_whetstone
 
         // Helper tasks activations
-        if auxiliary::due_activation(ACTIVATION_CONDITION) {
-            #[cfg(feature = "profiling-regular_producer")]
-            locals.profiler.lap(); // Lap 2: due_activation
+        #[cfg(not(feature = "profiling-regular_producer"))]
+        {
+            if auxiliary::due_activation(ACTIVATION_CONDITION) {
+                // on_call_producer activation
+                shared.request_buffer.lock(|buffer| {
+                    if !buffer.deposit(ON_CALL_PRODUCER_WORKLOAD) {
+                        defmt::info!("Failed sporadic activation.");
+                    }
+                });
+            }
+            if auxiliary::check_due() {
+                locals.activation_log_reader_signaler.signal();
+            }
+        }
 
+        #[cfg(feature = "profiling-regular_producer")]
+        {
+            let _ = auxiliary::due_activation(ACTIVATION_CONDITION);
+            locals.profiler.lap(); // Lap 2: due_activation
+            let _ = auxiliary::check_due();
+            locals.profiler.lap(); // Lap 3: check_due
             // on_call_producer activation
             shared.request_buffer.lock(|buffer| {
-                #[cfg(feature = "profiling-regular_producer")]
-                locals.profiler.lap(); // Lap 3: start rb_deposit
+                locals.profiler.lap(); // Lap 4: start rb_deposit
                 if !buffer.deposit(ON_CALL_PRODUCER_WORKLOAD) {
                     defmt::info!("Failed sporadic activation.");
                 }
-                #[cfg(feature = "profiling-regular_producer")]
-                locals.profiler.lap(); // Lap 4: end rb_deposit
+                locals.profiler.lap(); // Lap 5: end rb_deposit
             });
-            #[cfg(feature = "profiling-regular_producer")]
-            locals.profiler.lap(); // Lap 5: ocp_activation
-        }
-        if auxiliary::check_due() {
-            #[cfg(feature = "profiling-regular_producer")]
-            locals.profiler.lap(); // Lap 6: check_due
-
+            locals.profiler.lap(); // Lap 6: ocp_activation
             locals.activation_log_reader_signaler.signal();
-            #[cfg(feature = "profiling-regular_producer")]
             locals.profiler.lap(); // Lap 7: alr_signal
         }
 
@@ -140,6 +148,7 @@ pub async fn regular_producer_task<
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
+                defmt::panic!("Regular producer task profiling finished");
             }
         }
 

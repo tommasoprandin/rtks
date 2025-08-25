@@ -68,11 +68,11 @@ pub async fn activation_log_reader<
 ) -> ! {
     activation_manager::activation_sporadic().await;
     loop {
-        #[cfg(feature = "profiling-activation_log_reader")]
-        locals.profiler.reset();
-
         locals.semaphore.wait().await;
         locals.activation_count += 1;
+
+        #[cfg(feature = "profiling-activation_log_reader")]
+        locals.profiler.reset();
 
         if let Err(err) = production_workload::small_whetstone(1_000) {
             defmt::error!(
@@ -84,8 +84,6 @@ pub async fn activation_log_reader<
         locals.profiler.lap(); // Lap 1: alr_small_whetstone
 
         shared.activation_log.lock(|al| {
-            #[cfg(feature = "profiling-activation_log_reader")]
-            locals.profiler.lap(); // Lap 2: start al_read
 
             let (activations, last) = al.read();
 
@@ -113,7 +111,7 @@ pub async fn activation_log_reader<
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
-                defmt::panic!("Finished profiling");
+                defmt::panic!("Activation log reader finished profiling");
             }
         }
     }

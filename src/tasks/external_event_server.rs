@@ -21,10 +21,7 @@ pub struct ExternalEventServerLocals {
 
 impl ExternalEventServerLocals {
     #[cfg(feature = "profiling-external_event_server")]
-    pub fn new(
-        event_queue: EventQueueWaiter<'static>,
-        stopwatch: StopWatch<'static>,
-    ) -> Self {
+    pub fn new(event_queue: EventQueueWaiter<'static>, stopwatch: StopWatch<'static>) -> Self {
         Self {
             event_queue,
             activation_count: 0,
@@ -33,9 +30,7 @@ impl ExternalEventServerLocals {
     }
 
     #[cfg(not(feature = "profiling-external_event_server"))]
-    pub fn new(
-        event_queue: EventQueueWaiter<'static>,
-    ) -> Self {
+    pub fn new(event_queue: EventQueueWaiter<'static>) -> Self {
         Self {
             event_queue,
             activation_count: 0,
@@ -96,6 +91,7 @@ pub async fn external_event_server<
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
+                defmt::panic!("External event server profiling finished");
             }
         }
 

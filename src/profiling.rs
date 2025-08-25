@@ -70,32 +70,30 @@ pub mod activation_log_reader {
 
         fn update_wcet(&mut self) {
             let current_alr_smallwhetstone_time = self.lap_time(1);
-            let current_al_read_time = match (self.lap_time(3), self.lap_time(2)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_alr_read_time = match(self.lap_time(4), self.lap_time(1)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            if let Some(current) = current_alr_smallwhetstone_time {
-                self.wc_alr_smallwhetstone_time = Some(
-                    self.wc_alr_smallwhetstone_time
-                        .map_or(current, |worst| max(current, worst)),
-                );
+            let current_al_read_time = self.lap_time(3);
+            let mut current_alr_read_time: Option<fugit::MicrosDurationU64> = None;
+            for lap in 1..=self.stopwatch.lap_count() {
+                current_alr_read_time = current_alr_read_time.map_or(self.lap_time(lap), |curr| {
+                    Some(curr + self.lap_time(lap).unwrap_or(0.micros()))
+                });
             }
-            if let Some(current) = current_al_read_time {
-                self.wc_al_read_time = Some(
-                    self.wc_al_read_time
-                        .map_or(current, |worst| max(current, worst)),
-                );
-            }
-            if let Some(current) = current_alr_read_time {
-                self.wc_alr_read_time = Some(
-                    self.wc_alr_read_time
-                        .map_or(current, |worst| max(current, worst)),
-                );
-            }
+
+            self.wc_alr_smallwhetstone_time =
+                self.wc_alr_smallwhetstone_time
+                    .map_or(current_alr_smallwhetstone_time, |worst| {
+                        Some(max(
+                            worst,
+                            current_alr_smallwhetstone_time.unwrap_or(0.micros()),
+                        ))
+                    });
+            self.wc_al_read_time = self.wc_al_read_time.map_or(current_al_read_time, |worst| {
+                Some(max(worst, current_al_read_time.unwrap_or(0.micros())))
+            });
+            self.wc_alr_read_time = self
+                .wc_alr_read_time
+                .map_or(current_alr_read_time, |worst| {
+                    Some(max(worst, current_alr_read_time.unwrap_or(0.micros())))
+                });
         }
 
         fn log(&self) {
@@ -153,23 +151,25 @@ pub mod external_event_server {
         }
 
         fn update_wcet(&mut self) {
-            let current_al_write_time = match (self.lap_time(2), self.lap_time(1)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_ees_write_time = self.lap_time(3);
-            if let Some(current) = current_al_write_time {
-                self.wc_al_write_time = Some(
-                    self.wc_al_write_time
-                        .map_or(current, |worst| max(current, worst)),
-                );
+            let current_al_write_time = self.lap_time(2);
+            let mut current_ees_write_time = None;
+            for lap in 1..=self.stopwatch.lap_count() {
+                current_ees_write_time = current_ees_write_time
+                    .map_or(self.lap_time(lap), |current| {
+                        Some(current + self.lap_time(lap).unwrap_or(0.micros()))
+                    });
             }
-            if let Some(current) = current_ees_write_time {
-                self.wc_ees_write_time = Some(
-                    self.wc_ees_write_time
-                        .map_or(current, |worst| max(current, worst)),
-                );
-            }
+
+            self.wc_al_write_time = self
+                .wc_al_write_time
+                .map_or(current_al_write_time, |worst| {
+                    Some(max(worst, current_al_write_time.unwrap_or(0.micros())))
+                });
+            self.wc_ees_write_time = self
+                .wc_ees_write_time
+                .map_or(current_ees_write_time, |worst| {
+                    Some(max(worst, current_ees_write_time.unwrap_or(0.micros())))
+                })
         }
 
         fn log(&self) {
@@ -229,22 +229,15 @@ pub mod on_call_producer {
         }
 
         fn update_wcet(&mut self) {
-            let current_rb_extract_time = match (self.lap_time(2), self.lap_time(1)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_extract_workload_time = match (self.lap_time(3), self.lap_time(1)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_ocp_smallwhetstone_time = match (self.lap_time(4), self.lap_time(3)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_put_line_time = match (self.lap_time(5), self.lap_time(4)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
+            let current_rb_extract_time = self.lap_time(2);
+            let current_extract_workload_time =
+                match (self.lap_time(1), self.lap_time(2), self.lap_time(3)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
+            let current_ocp_smallwhetstone_time = self.lap_time(4);
+            let current_put_line_time = self.lap_time(5);
+
             if let Some(current) = current_rb_extract_time {
                 self.wc_rb_extract_time = Some(
                     self.wc_rb_extract_time
@@ -337,26 +330,15 @@ pub mod regular_producer {
 
         fn update_wcet(&mut self) {
             let current_rp_smallwhetstone_time = self.lap_time(1);
-            let current_due_activation_time = match (self.lap_time(2), self.lap_time(1)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_rb_deposit_time = match (self.lap_time(4), self.lap_time(3)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_ocp_activation_time = match (self.lap_time(5), self.lap_time(2)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_check_due_time = match (self.lap_time(6), self.lap_time(5)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
-            let current_alr_signal_time = match (self.lap_time(7), self.lap_time(6)) {
-                (Some(end), Some(start)) => Some(end - start),
-                _ => None,
-            };
+            let current_due_activation_time = self.lap_time(2);
+            let current_rb_deposit_time = self.lap_time(5);
+            let current_ocp_activation_time =
+                match (self.lap_time(4), self.lap_time(5), self.lap_time(6)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
+            let current_check_due_time = self.lap_time(3);
+            let current_alr_signal_time = self.lap_time(7);
             if let Some(current) = current_rp_smallwhetstone_time {
                 self.wc_rp_smallwhetstone_time = Some(
                     self.wc_rp_smallwhetstone_time
