@@ -8,10 +8,7 @@ use crate::{
     },
     production_workload,
     deadline::DeadlineProtectedObject,
-    time::{Mono, Instant},
 };
-use rtic_sync::signal::SignalWriter;
-use rtic_monotonics::Monotonic;
 #[cfg(feature = "profiling-activation_log_reader")]
 use stm32f4xx_hal::dwt::StopWatch;
 
@@ -19,7 +16,6 @@ pub const DEADLINE: u32 = 1_000;
 
 pub struct ActivationLogReaderLocals {
     semaphore: TaskSemaphoreWaiter<'static>,
-    activation_writer: SignalWriter<'static, Instant>,
     activation_count: u32,
     #[cfg(feature = "profiling-activation_log_reader")]
     profiler: ActivationLogReaderProfiler,
@@ -29,12 +25,10 @@ impl ActivationLogReaderLocals {
     #[cfg(feature = "profiling-activation_log_reader")]
     pub fn new(
         semaphore: TaskSemaphoreWaiter<'static>,
-        activation_writer: SignalWriter<'static, Instant>,
         stopwatch: StopWatch<'static>,
     ) -> Self {
         Self {
             semaphore,
-            activation_writer,
             activation_count: 0,
             profiler: ActivationLogReaderProfiler::new(stopwatch),
         }
@@ -43,11 +37,9 @@ impl ActivationLogReaderLocals {
     #[cfg(not(feature = "profiling-activation_log_reader"))]
     pub fn new(
         semaphore: TaskSemaphoreWaiter<'static>,
-        activation_writer: SignalWriter<'static, Instant>,
     ) -> Self {
         Self {
             semaphore,
-            activation_writer,
             activation_count: 0,
         }
     }
@@ -91,9 +83,6 @@ pub async fn activation_log_reader<
         locals.profiler.reset();
 
         locals.semaphore.wait().await;
-
-        // Signal activation to the deadline watchdog
-        locals.activation_writer.write(Mono::now());
         locals.activation_count += 1;
 
         if let Err(err) = production_workload::small_whetstone(1_000) {

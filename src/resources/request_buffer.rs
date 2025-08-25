@@ -1,6 +1,8 @@
 use heapless::Vec;
 use core::ops::AddAssign;
 use rtic_sync::signal::{SignalWriter};
+use crate::time::{Mono, Instant};
+use rtic_monotonics::Monotonic;
 
 const REQUEST_BUFFER_RANGE: usize = 5;
 
@@ -30,25 +32,33 @@ pub struct RequestBuffer {
     extract_index: RequestBufferIndex,
     current_size: usize,
     barrier_writer: SignalWriter<'static, ()>,
+    activation_watchdog: SignalWriter<'static, Instant>,
 }
 
 impl RequestBuffer {
-    pub fn new(barrier_writer: SignalWriter<'static, ()>) -> Self {
+    pub fn new(
+        barrier_writer: SignalWriter<'static, ()>,
+        activation_watchdog: SignalWriter<'static, Instant>,
+    ) -> Self {
         RequestBuffer {
             my_request_buffer: Vec::new(),
             insert_index: RequestBufferIndex::first(),
             extract_index: RequestBufferIndex::first(),
             current_size: 0,
-            barrier_writer: barrier_writer,
+            barrier_writer,
+            activation_watchdog,
         }
     }
 
     pub fn deposit(&mut self, activation_parameter: u32) -> bool {
         if self.current_size < RequestBufferIndex::last().0 {
-            let _ = self.my_request_buffer.push(activation_parameter); // TODO: Handle possible error
+            let _ = match self.my_request_buffer.push(activation_parameter) {
+                Ok(_) => (),
+                Err(_) => panic!("RequestBuffer full, cannot push new element"),  
+            };
             self.insert_index += 1;
             self.current_size += 1;
-            self.barrier_writer.write(());
+            self.notify();
             return true;
         } else {
             return false;
@@ -59,5 +69,10 @@ impl RequestBuffer {
         self.extract_index += 1;
         self.current_size -= 1;
         return self.my_request_buffer.pop().unwrap();
+    }
+
+    fn notify(&mut self) {
+        self.barrier_writer.write(());
+        self.activation_watchdog.write(Mono::now());
     }
 }

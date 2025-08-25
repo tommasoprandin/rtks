@@ -5,10 +5,8 @@ use crate::{
     deadline::DeadlineProtectedObject,
     production_workload,
     resources::request_buffer::RequestBuffer,
-    time::{Instant, Mono},
 };
-use rtic_monotonics::Monotonic;
-use rtic_sync::signal::{SignalReader, SignalWriter};
+use rtic_sync::signal::{SignalReader};
 #[cfg(feature = "profiling-on_call_producer")]
 use stm32f4xx_hal::dwt::StopWatch;
 
@@ -17,7 +15,6 @@ pub const DEADLINE: u32 = 800;
 pub struct OnCallProducerLocals {
     current_workload: u32,
     barrier_reader: SignalReader<'static, ()>,
-    activation_writer: SignalWriter<'static, Instant>,
     activation_count: u32,
     #[cfg(feature = "profiling-on_call_producer")]
     profiler: OnCallProducerProfiler,
@@ -27,13 +24,11 @@ impl OnCallProducerLocals {
     #[cfg(feature = "profiling-on_call_producer")]
     pub fn new(
         barrier_reader: SignalReader<'static, ()>,
-        activation_writer: SignalWriter<'static, Instant>,
         stopwatch: StopWatch<'static>,
     ) -> Self {
         Self {
             current_workload: 0,
             barrier_reader,
-            activation_writer,
             activation_count: 0,
             profiler: OnCallProducerProfiler::new(stopwatch),
         }
@@ -42,12 +37,10 @@ impl OnCallProducerLocals {
     #[cfg(not(feature = "profiling-on_call_producer"))]
     pub fn new(
         barrier_reader: SignalReader<'static, ()>,
-        activation_writer: SignalWriter<'static, Instant>,
     ) -> Self {
         Self {
             current_workload: 0,
             barrier_reader,
-            activation_writer,
             activation_count: 0,
         }
     }
@@ -88,9 +81,6 @@ pub async fn on_call_producer_task<
     activation_manager::activation_sporadic().await;
     loop {
         locals.barrier_reader.wait().await;
-
-        // Signal activation to the deadline watchdog
-        locals.activation_writer.write(Mono::now());
         locals.activation_count += 1;
 
         #[cfg(feature = "profiling-on_call_producer")]

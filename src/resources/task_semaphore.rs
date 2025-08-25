@@ -1,19 +1,38 @@
 use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
-pub struct TaskSemaphore {
-    inner: Signal<()>,
-}
+use crate::time::{Mono, Instant};
+use rtic_monotonics::Monotonic;
+use core::{
+    mem::MaybeUninit,
+    sync::atomic::{AtomicBool, Ordering},
+};
+
+pub struct TaskSemaphore;
+
+static mut TASK_SEMAPHORE: MaybeUninit<Signal<()>> = MaybeUninit::uninit();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 impl TaskSemaphore {
-    pub const fn new() -> Self {
-        Self {
-            inner: Signal::new(),
-        }
-    }
+    // The hint is safe since the implementation never leaks the reference out and its used atomically
+    #[allow(static_mut_refs)]
+    pub fn init(
+        activation_watchdog: SignalWriter<'static, Instant>
+    ) -> (TaskSemaphoreWaiter<'static>, TaskSemaphoreSignaler<'static>) {
+        let (writer, reader) = if INITIALIZED
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+        {
+            // SAFETY: The CAS operation guarantees at most one initialization even with competing threads, hence if we reach this branch we
+            // are guaranteed to be the only initializers of the static signal, and splitting is safe.
+            unsafe { TASK_SEMAPHORE.write(Signal::new()).split() }
+        } else {
+            defmt::panic!("Multiple TaskSemaphore initialization");
+        };
 
-    pub fn split(&self) -> (TaskSemaphoreWaiter<'_>, TaskSemaphoreSignaler<'_>) {
-        let (writer, reader) = self.inner.split();
         (
-            TaskSemaphoreWaiter { inner: reader },
+            TaskSemaphoreWaiter { 
+                inner: reader,
+                activation_watchdog,
+            },
             TaskSemaphoreSignaler { inner: writer },
         )
     }
@@ -21,11 +40,14 @@ impl TaskSemaphore {
 
 pub struct TaskSemaphoreWaiter<'a> {
     inner: SignalReader<'a, ()>,
+    activation_watchdog: SignalWriter<'static, Instant>,
 }
 
 impl<'a> TaskSemaphoreWaiter<'a> {
     pub async fn wait(&mut self) {
         self.inner.wait().await;
+        // Signal activation to the related deadline watchdog
+        self.activation_watchdog.write(Mono::now());
     }
 }
 

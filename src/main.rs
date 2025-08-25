@@ -29,15 +29,6 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     device = stm32f4xx_hal::pac,
     dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI9_5])]
 mod app {
-
-    #[cfg(any(
-        feature = "profiling-activation_log_reader",
-        feature = "profiling-external_event_server",
-        feature = "profiling-on_call_producer",
-        feature = "profiling-regular_producer",
-    ))]
-    use core::mem::MaybeUninit;
-
     use crate::{
         activation_manager,
         deadline::{
@@ -51,7 +42,7 @@ mod app {
             activation_log::ActivationLog,
             event_queue::{EventQueue, EventQueueSignaler},
             request_buffer::RequestBuffer,
-            task_semaphore::{TaskSemaphore, TaskSemaphoreWaiter},
+            task_semaphore::{TaskSemaphore},
         },
         tasks::{
             self,
@@ -63,7 +54,7 @@ mod app {
         time::{Instant, Mono},
     };
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
-    use rtic_sync::{make_signal, signal::SignalReader, signal::SignalWriter};
+    use rtic_sync::{make_signal};
     #[cfg(any(
         feature = "profiling-activation_log_reader",
         feature = "profiling-external_event_server",
@@ -125,7 +116,6 @@ mod app {
         on_call_producer_times: [u32; 5] = [0; 5],
         #[cfg(feature = "profiling-regular_producer")]
         regular_producer_times: [u32; 7] = [0; 7],
-        activation_log_reader_semaphore: TaskSemaphore = TaskSemaphore::new(),
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::info!("Init");
@@ -160,32 +150,38 @@ mod app {
         // Setup ACTIVATION_INSTANT
         activation_manager::set_activation_time();
 
-        // Setup event queue
-        let (event_waiter, event_signaler) = EventQueue::init();
         // Setup activation log
         let activation_log = ActivationLog::new();
-        // Setup activation log reader semaphore
-        let (activation_log_reader_waiter, activation_log_reader_signaler) =
-            cx.local.activation_log_reader_semaphore.split();
         // Setup barrier for on call producer
         let (barrier_writer, barrier_reader) = make_signal!(());
-        // Setup request buffer
-        let request_buffer = RequestBuffer::new(barrier_writer);
-        // Setup external event server deadline
-        let external_event_server_deadline_protected_object =
-            DeadlineProtectedObject::new("External_Event_Server");
-        let (external_event_server_activation_writer, external_event_server_activation_reader) =
-            make_signal!(Instant);
+
         // Setup activation log reader deadline
         let activation_log_reader_deadline_protected_object =
             DeadlineProtectedObject::new("Activation_Log_Reader");
         let (activation_log_reader_activation_writer, activation_log_reader_activation_reader) =
             make_signal!(Instant);
+        // Setup activation log reader semaphore
+        let (activation_log_reader_waiter, activation_log_reader_signaler) = TaskSemaphore::init(activation_log_reader_activation_writer);
+
+        // Setup external event server deadline
+        let external_event_server_deadline_protected_object =
+            DeadlineProtectedObject::new("External_Event_Server");
+        let (external_event_server_activation_writer, external_event_server_activation_reader) =
+            make_signal!(Instant);
+        // Setup event queue
+        let (event_waiter, event_signaler) = EventQueue::init(external_event_server_activation_writer);
+
         // Setup on call producer deadline
         let on_call_producer_deadline_protected_object =
             DeadlineProtectedObject::new("On_Call_Producer");
         let (on_call_producer_activation_writer, on_call_producer_activation_reader) =
             make_signal!(Instant);
+        // Setup request buffer
+        let request_buffer = RequestBuffer::new(
+            barrier_writer,
+            on_call_producer_activation_writer,  
+        );
+
         // Setup regular producer deadline
         let regular_producer_deadline_protected_object =
             DeadlineProtectedObject::new("Regular_Producer");
@@ -218,24 +214,21 @@ mod app {
             Local {
                 // Initialization of local resources go here
                 event_signaler,
-                // External_Event_Server
-                external_event_server_locals: ExternalEventServerLocals::new(
-                    event_waiter,
-                    external_event_server_activation_writer,
-                    #[cfg(feature = "profiling-external_event_server")]
-                    dwt.stopwatch(cx.local.external_event_server_times),
-                ),
                 // Activation_Log_Reader
                 activation_log_reader_locals: ActivationLogReaderLocals::new(
                     activation_log_reader_waiter,
-                    activation_log_reader_activation_writer,
                     #[cfg(feature = "profiling-activation_log_reader")]
                     dwt.stopwatch(cx.local.activation_log_reader_times),
+                ),
+                // External_Event_Server
+                external_event_server_locals: ExternalEventServerLocals::new(
+                    event_waiter,
+                    #[cfg(feature = "profiling-external_event_server")]
+                    dwt.stopwatch(cx.local.external_event_server_times),
                 ),
                 // On_Call_Producer
                 on_call_producer_locals: OnCallProducerLocals::new(
                     barrier_reader,
-                    on_call_producer_activation_writer,
                     #[cfg(feature = "profiling-on_call_producer")]
                     dwt.stopwatch(cx.local.on_call_producer_times),
                 ),
