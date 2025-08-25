@@ -3,6 +3,7 @@ use core::ops::AddAssign;
 use rtic_sync::signal::{SignalWriter};
 use crate::time::{Mono, Instant};
 use rtic_monotonics::Monotonic;
+use cortex_m::interrupt;
 
 const REQUEST_BUFFER_RANGE: usize = 5;
 
@@ -72,7 +73,10 @@ impl RequestBuffer {
     }
 
     fn notify(&mut self) {
-        self.barrier_writer.write(());
-        self.activation_watchdog.write(Mono::now());
+        // Critical section to avoid preemption between task and deadline watchdog signaling
+        interrupt::free(|_| {
+            self.barrier_writer.write(());
+            self.activation_watchdog.write(Mono::now());
+        });
     }
 }

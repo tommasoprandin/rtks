@@ -5,6 +5,7 @@ use core::{
     mem::MaybeUninit,
     sync::atomic::{AtomicBool, Ordering},
 };
+use cortex_m::interrupt;
 
 pub struct TaskSemaphore;
 
@@ -55,8 +56,10 @@ pub struct TaskSemaphoreSignaler<'a> {
 
 impl<'a> TaskSemaphoreSignaler<'a> {
     pub fn signal(&mut self) {
-        self.inner.write(());
-        // Signal activation to the related deadline watchdog
-        self.activation_watchdog.write(Mono::now());
+        // Critical section to avoid preemption between task and deadline watchdog signaling
+        interrupt::free(|_| {
+            self.inner.write(());
+            self.activation_watchdog.write(Mono::now());
+        });
     }
 }

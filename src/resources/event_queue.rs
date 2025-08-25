@@ -5,6 +5,7 @@ use core::{
 use crate::time::{Mono, Instant};
 use rtic_monotonics::Monotonic;
 use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
+use cortex_m::interrupt;
 
 pub type EventType = ();
 pub struct EventQueue;
@@ -57,8 +58,10 @@ pub struct EventQueueSignaler<'a> {
 
 impl<'a> EventQueueSignaler<'a> {
     pub fn signal(&mut self, evt: EventType) {
-        self.inner.write(evt);
-        // Signal activation to the related deadline watchdog
-        self.activation_watchdog.write(Mono::now());
+        // Critical section to avoid preemption between task and deadline watchdog signaling
+        interrupt::free(|_| {
+            self.inner.write(evt);
+            self.activation_watchdog.write(Mono::now());
+        });
     }
 }
