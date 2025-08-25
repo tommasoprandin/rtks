@@ -30,35 +30,35 @@ impl EventQueue {
         };
 
         (
-            EventQueueWaiter { 
-                inner: reader,
+            EventQueueWaiter { inner: reader },
+            EventQueueSignaler {
+                inner: writer,
                 activation_watchdog,
             },
-            EventQueueSignaler { inner: writer },
         )
     }
 }
 
 pub struct EventQueueWaiter<'a> {
     inner: SignalReader<'a, EventType>,
-    activation_watchdog: SignalWriter<'static, Instant>,
 }
 
 impl<'a> EventQueueWaiter<'a> {
     pub async fn wait(&mut self) {
         self.inner.wait().await;
-        // Signal activation to the related deadline watchdog
-        self.activation_watchdog.write(Mono::now());
     }
 }
 
 #[derive(Clone)]
 pub struct EventQueueSignaler<'a> {
     inner: SignalWriter<'a, EventType>,
+    activation_watchdog: SignalWriter<'static, Instant>,
 }
 
 impl<'a> EventQueueSignaler<'a> {
     pub fn signal(&mut self, evt: EventType) {
         self.inner.write(evt);
+        // Signal activation to the related deadline watchdog
+        self.activation_watchdog.write(Mono::now());
     }
 }

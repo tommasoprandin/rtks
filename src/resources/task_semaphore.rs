@@ -29,34 +29,34 @@ impl TaskSemaphore {
         };
 
         (
-            TaskSemaphoreWaiter { 
-                inner: reader,
+            TaskSemaphoreWaiter { inner: reader },
+            TaskSemaphoreSignaler {
+                inner: writer,
                 activation_watchdog,
             },
-            TaskSemaphoreSignaler { inner: writer },
         )
     }
 }
 
 pub struct TaskSemaphoreWaiter<'a> {
     inner: SignalReader<'a, ()>,
-    activation_watchdog: SignalWriter<'static, Instant>,
 }
 
 impl<'a> TaskSemaphoreWaiter<'a> {
     pub async fn wait(&mut self) {
         self.inner.wait().await;
-        // Signal activation to the related deadline watchdog
-        self.activation_watchdog.write(Mono::now());
     }
 }
 
 pub struct TaskSemaphoreSignaler<'a> {
     inner: SignalWriter<'a, ()>,
+    activation_watchdog: SignalWriter<'static, Instant>,
 }
 
 impl<'a> TaskSemaphoreSignaler<'a> {
     pub fn signal(&mut self) {
         self.inner.write(());
+        // Signal activation to the related deadline watchdog
+        self.activation_watchdog.write(Mono::now());
     }
 }
