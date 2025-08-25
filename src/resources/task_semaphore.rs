@@ -1,11 +1,10 @@
-use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
-use crate::time::{Mono, Instant};
-use rtic_monotonics::Monotonic;
+use crate::time::{Instant, Mono};
 use core::{
     mem::MaybeUninit,
     sync::atomic::{AtomicBool, Ordering},
 };
-use cortex_m::interrupt;
+use rtic_monotonics::Monotonic;
+use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
 
 pub struct TaskSemaphore;
 
@@ -16,7 +15,7 @@ impl TaskSemaphore {
     // The hint is safe since the implementation never leaks the reference out and its used atomically
     #[allow(static_mut_refs)]
     pub fn init(
-        activation_watchdog: SignalWriter<'static, Instant>
+        activation_watchdog: SignalWriter<'static, Instant>,
     ) -> (TaskSemaphoreWaiter<'static>, TaskSemaphoreSignaler<'static>) {
         let (writer, reader) = if INITIALIZED
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -56,10 +55,10 @@ pub struct TaskSemaphoreSignaler<'a> {
 
 impl<'a> TaskSemaphoreSignaler<'a> {
     pub fn signal(&mut self) {
-        // Critical section to avoid preemption between task and deadline watchdog signaling
-        interrupt::free(|_| {
+        critical_section::with(|_cs| {
             self.inner.write(());
+            // Signal activation to the related deadline watchdog
             self.activation_watchdog.write(Mono::now());
-        });
+        })
     }
 }

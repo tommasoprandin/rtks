@@ -12,7 +12,13 @@ mod time;
 
 use cortex_m::interrupt;
 use cortex_m_semihosting::debug::{self, EXIT_FAILURE};
+#[cfg(feature = "rtt")]
+use defmt_rtt as _;
+#[cfg(feature = "semihosting")]
 use defmt_semihosting as _;
+#[cfg(not(any(feature = "rtt", feature = "semihosting")))]
+compile_error!("No global logger selected, enable either the rtt or semihosting feature");
+
 use stm32f4xx_hal as _;
 
 #[panic_handler]
@@ -27,22 +33,19 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[rtic::app(
     device = stm32f4xx_hal::pac,
-    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI9_5])]
+    dispatchers = [EXTI0, EXTI1, EXTI2, EXTI3, EXTI4, EXTI9_5 ])]
 mod app {
     use crate::{
         activation_manager,
         deadline::{
-            DeadlineProtectedObject, 
-            PeriodicDeadlineWatchdogLocals,
-            periodic_deadline_watchdog,
-            SporadicDeadlineWatchdogLocals,
-            sporadic_deadline_watchdog,
+            DeadlineProtectedObject, PeriodicDeadlineWatchdogLocals,
+            SporadicDeadlineWatchdogLocals, periodic_deadline_watchdog, sporadic_deadline_watchdog,
         },
         resources::{
             activation_log::ActivationLog,
             event_queue::{EventQueue, EventQueueSignaler},
             request_buffer::RequestBuffer,
-            task_semaphore::{TaskSemaphore},
+            task_semaphore::TaskSemaphore,
         },
         tasks::{
             self,
@@ -53,8 +56,15 @@ mod app {
         },
         time::{Instant, Mono},
     };
+    #[cfg(any(
+        feature = "profiling-activation_log_reader",
+        feature = "profiling-external_event_server",
+        feature = "profiling-on_call_producer",
+        feature = "profiling-regular_producer",
+    ))]
+    use core::mem::MaybeUninit;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
-    use rtic_sync::{make_signal};
+    use rtic_sync::make_signal;
     #[cfg(any(
         feature = "profiling-activation_log_reader",
         feature = "profiling-external_event_server",
@@ -109,13 +119,13 @@ mod app {
         ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
         #[cfg(feature = "profiling-activation_log_reader")]
-        activation_log_reader_times: [u32; 4] = [0; 4],
+        activation_log_reader_times: [u32; 5] = [0; 5],
         #[cfg(feature = "profiling-external_event_server")]
-        external_event_server_times: [u32; 3] = [0; 3],
+        external_event_server_times: [u32; 4] = [0; 4],
         #[cfg(feature = "profiling-on_call_producer")]
-        on_call_producer_times: [u32; 5] = [0; 5],
+        on_call_producer_times: [u32; 6] = [0; 6],
         #[cfg(feature = "profiling-regular_producer")]
-        regular_producer_times: [u32; 7] = [0; 7],
+        regular_producer_times: [u32; 8] = [0; 8],
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::info!("Init");
@@ -161,7 +171,8 @@ mod app {
         let (activation_log_reader_activation_writer, activation_log_reader_activation_reader) =
             make_signal!(Instant);
         // Setup activation log reader semaphore
-        let (activation_log_reader_waiter, activation_log_reader_signaler) = TaskSemaphore::init(activation_log_reader_activation_writer);
+        let (activation_log_reader_waiter, activation_log_reader_signaler) =
+            TaskSemaphore::init(activation_log_reader_activation_writer);
 
         // Setup external event server deadline
         let external_event_server_deadline_protected_object =
@@ -169,7 +180,8 @@ mod app {
         let (external_event_server_activation_writer, external_event_server_activation_reader) =
             make_signal!(Instant);
         // Setup event queue
-        let (event_waiter, event_signaler) = EventQueue::init(external_event_server_activation_writer);
+        let (event_waiter, event_signaler) =
+            EventQueue::init(external_event_server_activation_writer);
 
         // Setup on call producer deadline
         let on_call_producer_deadline_protected_object =
@@ -177,10 +189,7 @@ mod app {
         let (on_call_producer_activation_writer, on_call_producer_activation_reader) =
             make_signal!(Instant);
         // Setup request buffer
-        let request_buffer = RequestBuffer::new(
-            barrier_writer,
-            on_call_producer_activation_writer,  
-        );
+        let request_buffer = RequestBuffer::new(barrier_writer, on_call_producer_activation_writer);
 
         // Setup regular producer deadline
         let regular_producer_deadline_protected_object =
@@ -258,15 +267,17 @@ mod app {
                 ),
                 // Regular_Producer_Deadline_Miss_Handler
                 regular_producer_watchdog_locals: PeriodicDeadlineWatchdogLocals::new(
-                    Some(activation_manager::get_activation_instant()
-                        + tasks::regular_producer_task::DEADLINE.millis()),
+                    Some(
+                        activation_manager::get_activation_instant()
+                            + tasks::regular_producer_task::DEADLINE.millis(),
+                    ),
                     tasks::regular_producer_task::PERIOD,
                 ),
             },
         )
     }
 
-    #[task(priority = 3, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
+    #[task(priority = 16, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader(cx: activation_log_reader::Context) -> ! {
         tasks::activation_log_reader::activation_log_reader(
             cx.local.activation_log_reader_locals,
@@ -278,7 +289,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 11, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
+    #[task(priority = 7, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
     async fn external_event_server(cx: external_event_server::Context) -> ! {
         tasks::external_event_server::external_event_server(
             cx.local.external_event_server_locals,
@@ -290,7 +301,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 5, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
+    #[task(priority = 3, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
     async fn on_call_producer(cx: on_call_producer::Context) {
         tasks::on_call_producer_task::on_call_producer_task(
             cx.local.on_call_producer_locals,
@@ -302,7 +313,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 7, local = [regular_producer_locals], shared = [request_buffer, regular_producer_deadline_protected_object])]
+    #[task(priority = 5, local = [regular_producer_locals], shared = [request_buffer, regular_producer_deadline_protected_object])]
     async fn regular_producer(cx: regular_producer::Context) {
         tasks::regular_producer_task::regular_producer_task(
             cx.local.regular_producer_locals,
@@ -314,7 +325,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 12, local = [activation_log_reader_watchdog_locals], shared =[activation_log_reader_deadline_protected_object])]
+    #[task(priority = 11, local = [activation_log_reader_watchdog_locals], shared =[activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader_deadline_miss_handler(
         mut cx: activation_log_reader_deadline_miss_handler::Context,
     ) -> ! {
@@ -325,7 +336,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 12, local = [external_event_server_watchdog_locals], shared =[external_event_server_deadline_protected_object])]
+    #[task(priority = 11, local = [external_event_server_watchdog_locals], shared =[external_event_server_deadline_protected_object])]
     async fn external_event_server_deadline_miss_handler(
         mut cx: external_event_server_deadline_miss_handler::Context,
     ) -> ! {
@@ -336,7 +347,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 12, local = [on_call_producer_watchdog_locals], shared =[on_call_producer_deadline_protected_object])]
+    #[task(priority = 11, local = [on_call_producer_watchdog_locals], shared =[on_call_producer_deadline_protected_object])]
     async fn on_call_producer_deadline_miss_handler(
         mut cx: on_call_producer_deadline_miss_handler::Context,
     ) -> ! {
@@ -347,7 +358,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 12, local = [regular_producer_watchdog_locals], shared =[regular_producer_deadline_protected_object])]
+    #[task(priority = 11, local = [regular_producer_watchdog_locals], shared =[regular_producer_deadline_protected_object])]
     async fn regular_producer_deadline_miss_handler(
         mut cx: regular_producer_deadline_miss_handler::Context,
     ) -> ! {
@@ -365,7 +376,7 @@ mod app {
         }
         activation_manager::activation_cyclic().await;
         loop {
-            let next_time = Mono::now() + 500.millis();
+            let next_time = Mono::now() + 10.secs();
             NVIC::pend(interrupt::USART1);
             defmt::info!("USART1 interrupt generated");
             Mono::delay_until(next_time).await;

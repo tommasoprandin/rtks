@@ -2,12 +2,9 @@
 use crate::profiling::{Profiler as _, activation_log_reader::ActivationLogReaderProfiler};
 use crate::{
     activation_manager,
-    resources::{
-        activation_log::ActivationLog,
-        task_semaphore::TaskSemaphoreWaiter,
-    },
-    production_workload,
     deadline::DeadlineProtectedObject,
+    production_workload,
+    resources::{activation_log::ActivationLog, task_semaphore::TaskSemaphoreWaiter},
 };
 #[cfg(feature = "profiling-activation_log_reader")]
 use stm32f4xx_hal::dwt::StopWatch;
@@ -23,10 +20,7 @@ pub struct ActivationLogReaderLocals {
 
 impl ActivationLogReaderLocals {
     #[cfg(feature = "profiling-activation_log_reader")]
-    pub fn new(
-        semaphore: TaskSemaphoreWaiter<'static>,
-        stopwatch: StopWatch<'static>,
-    ) -> Self {
+    pub fn new(semaphore: TaskSemaphoreWaiter<'static>, stopwatch: StopWatch<'static>) -> Self {
         Self {
             semaphore,
             activation_count: 0,
@@ -35,9 +29,7 @@ impl ActivationLogReaderLocals {
     }
 
     #[cfg(not(feature = "profiling-activation_log_reader"))]
-    pub fn new(
-        semaphore: TaskSemaphoreWaiter<'static>,
-    ) -> Self {
+    pub fn new(semaphore: TaskSemaphoreWaiter<'static>) -> Self {
         Self {
             semaphore,
             activation_count: 0,
@@ -45,7 +37,7 @@ impl ActivationLogReaderLocals {
     }
 }
 
-pub struct ActivationLogReaderShared<AL, DPO> 
+pub struct ActivationLogReaderShared<AL, DPO>
 where
     AL: rtic::Mutex<T = ActivationLog>,
     DPO: rtic::Mutex<T = DeadlineProtectedObject>,
@@ -59,10 +51,7 @@ where
     AL: rtic::Mutex<T = ActivationLog>,
     DPO: rtic::Mutex<T = DeadlineProtectedObject>,
 {
-    pub fn new(
-        activation_log: AL,
-        deadline_protected_object: DPO,
-    ) -> Self {
+    pub fn new(activation_log: AL, deadline_protected_object: DPO) -> Self {
         Self {
             activation_log,
             deadline_protected_object,
@@ -97,9 +86,9 @@ pub async fn activation_log_reader<
         shared.activation_log.lock(|al| {
             #[cfg(feature = "profiling-activation_log_reader")]
             locals.profiler.lap(); // Lap 2: start al_read
-            
+
             let (activations, last) = al.read();
-            
+
             #[cfg(feature = "profiling-activation_log_reader")]
             locals.profiler.lap(); // Lap 3: end al_read
 
@@ -124,6 +113,7 @@ pub async fn activation_log_reader<
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
+                defmt::panic!("Finished profiling");
             }
         }
     }

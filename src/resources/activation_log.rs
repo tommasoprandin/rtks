@@ -1,4 +1,4 @@
- use rtic_monotonics::Monotonic;
+use rtic_monotonics::Monotonic;
 
 use crate::time::{Instant, Mono};
 
@@ -18,8 +18,10 @@ impl ActivationLog {
     }
 
     pub fn write(&mut self) {
-        self.activation_counter = (self.activation_counter + 1) % ACTIVATION_MOD;
-        self.last_activation_time = Some(Mono::now());
+        critical_section::with(|_cs| {
+            self.activation_counter = (self.activation_counter + 1) % ACTIVATION_MOD;
+            self.last_activation_time = Some(Mono::now());
+        })
     }
 
     pub fn read(&self) -> (u32, Option<Instant>) {

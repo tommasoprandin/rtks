@@ -1,9 +1,8 @@
-use heapless::Vec;
+use crate::time::{Instant, Mono};
 use core::ops::AddAssign;
-use rtic_sync::signal::{SignalWriter};
-use crate::time::{Mono, Instant};
+use heapless::Vec;
 use rtic_monotonics::Monotonic;
-use cortex_m::interrupt;
+use rtic_sync::signal::SignalWriter;
 
 const REQUEST_BUFFER_RANGE: usize = 5;
 
@@ -55,7 +54,7 @@ impl RequestBuffer {
         if self.current_size < RequestBufferIndex::last().0 {
             let _ = match self.my_request_buffer.push(activation_parameter) {
                 Ok(_) => (),
-                Err(_) => panic!("RequestBuffer full, cannot push new element"),  
+                Err(_) => panic!("RequestBuffer full, cannot push new element"),
             };
             self.insert_index += 1;
             self.current_size += 1;
@@ -73,10 +72,9 @@ impl RequestBuffer {
     }
 
     fn notify(&mut self) {
-        // Critical section to avoid preemption between task and deadline watchdog signaling
-        interrupt::free(|_| {
+        critical_section::with(|_cs| {
             self.barrier_writer.write(());
             self.activation_watchdog.write(Mono::now());
-        });
+        })
     }
 }

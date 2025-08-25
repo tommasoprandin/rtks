@@ -1,11 +1,10 @@
+use crate::time::{Instant, Mono};
 use core::{
     mem::MaybeUninit,
     sync::atomic::{AtomicBool, Ordering},
 };
-use crate::time::{Mono, Instant};
 use rtic_monotonics::Monotonic;
 use rtic_sync::signal::{Signal, SignalReader, SignalWriter};
-use cortex_m::interrupt;
 
 pub type EventType = ();
 pub struct EventQueue;
@@ -17,7 +16,7 @@ impl EventQueue {
     // The hint is safe since the implementation never leaks the reference out and its used atomically
     #[allow(static_mut_refs)]
     pub fn init(
-        activation_watchdog: SignalWriter<'static, Instant>
+        activation_watchdog: SignalWriter<'static, Instant>,
     ) -> (EventQueueWaiter<'static>, EventQueueSignaler<'static>) {
         let (writer, reader) = if INITIALIZED
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -58,10 +57,10 @@ pub struct EventQueueSignaler<'a> {
 
 impl<'a> EventQueueSignaler<'a> {
     pub fn signal(&mut self, evt: EventType) {
-        // Critical section to avoid preemption between task and deadline watchdog signaling
-        interrupt::free(|_| {
+        critical_section::with(|_cs| {
             self.inner.write(evt);
+            // Signal activation to the related deadline watchdog
             self.activation_watchdog.write(Mono::now());
-        });
+        })
     }
 }
