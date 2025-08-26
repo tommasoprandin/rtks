@@ -277,7 +277,7 @@ mod app {
         )
     }
 
-    #[task(priority = 16, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
+    #[task(priority = 3, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader(cx: activation_log_reader::Context) -> ! {
         tasks::activation_log_reader::activation_log_reader(
             cx.local.activation_log_reader_locals,
@@ -289,7 +289,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 7, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
+    #[task(priority = 16, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
     async fn external_event_server(cx: external_event_server::Context) -> ! {
         tasks::external_event_server::external_event_server(
             cx.local.external_event_server_locals,
@@ -301,7 +301,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 3, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
+    #[task(priority = 5, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
     async fn on_call_producer(cx: on_call_producer::Context) {
         tasks::on_call_producer_task::on_call_producer_task(
             cx.local.on_call_producer_locals,
@@ -313,7 +313,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 5, local = [regular_producer_locals], shared = [request_buffer, regular_producer_deadline_protected_object])]
+    #[task(priority = 7, local = [regular_producer_locals], shared = [request_buffer, regular_producer_deadline_protected_object])]
     async fn regular_producer(cx: regular_producer::Context) {
         tasks::regular_producer_task::regular_producer_task(
             cx.local.regular_producer_locals,
@@ -325,7 +325,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 11, local = [activation_log_reader_watchdog_locals], shared =[activation_log_reader_deadline_protected_object])]
+    #[task(priority = 15, local = [activation_log_reader_watchdog_locals], shared =[activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader_deadline_miss_handler(
         mut cx: activation_log_reader_deadline_miss_handler::Context,
     ) -> ! {
@@ -336,7 +336,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 11, local = [external_event_server_watchdog_locals], shared =[external_event_server_deadline_protected_object])]
+    #[task(priority = 15, local = [external_event_server_watchdog_locals], shared =[external_event_server_deadline_protected_object])]
     async fn external_event_server_deadline_miss_handler(
         mut cx: external_event_server_deadline_miss_handler::Context,
     ) -> ! {
@@ -347,7 +347,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 11, local = [on_call_producer_watchdog_locals], shared =[on_call_producer_deadline_protected_object])]
+    #[task(priority = 15, local = [on_call_producer_watchdog_locals], shared =[on_call_producer_deadline_protected_object])]
     async fn on_call_producer_deadline_miss_handler(
         mut cx: on_call_producer_deadline_miss_handler::Context,
     ) -> ! {
@@ -358,7 +358,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 11, local = [regular_producer_watchdog_locals], shared =[regular_producer_deadline_protected_object])]
+    #[task(priority = 15, local = [regular_producer_watchdog_locals], shared =[regular_producer_deadline_protected_object])]
     async fn regular_producer_deadline_miss_handler(
         mut cx: regular_producer_deadline_miss_handler::Context,
     ) -> ! {
@@ -376,7 +376,7 @@ mod app {
         }
         activation_manager::activation_cyclic().await;
         loop {
-            let next_time = Mono::now() + 10.secs();
+            let next_time = Mono::now() + 5.secs();
             NVIC::pend(interrupt::USART1);
             defmt::info!("USART1 interrupt generated");
             Mono::delay_until(next_time).await;

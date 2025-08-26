@@ -13,12 +13,14 @@ First setup the proper environment variables depending on whether you want to ru
 
 To compile the project with debug config:
 ```
-cargo build
+cargo build --features <rtt|semihosting>
 ```
 or, with optimized config:
 ```
-cargo build --release
+cargo build --features <rtt|semihosting> --release
 ```
+
+You also must provide a `defmt` implementation using either the feature `rtt` or `semihosting` (the build will fail if none is selected)
 
 To run the project on a QEMU emulated machine or board (have care to set the `CARGO_TARGET_MODE` env var to either `board` or `qemu` depending on where you want to run it):
 ```
