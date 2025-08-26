@@ -289,7 +289,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 16, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
+    #[task(priority = 11, local=[external_event_server_locals], shared=[activation_log, external_event_server_deadline_protected_object])]
     async fn external_event_server(cx: external_event_server::Context) -> ! {
         tasks::external_event_server::external_event_server(
             cx.local.external_event_server_locals,
