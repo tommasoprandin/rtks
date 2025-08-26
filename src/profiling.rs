@@ -42,6 +42,7 @@ pub mod activation_log_reader {
         wc_alr_smallwhetstone_time: Option<fugit::MicrosDurationU64>,
         wc_al_read_time: Option<fugit::MicrosDurationU64>,
         wc_alr_read_time: Option<fugit::MicrosDurationU64>,
+        wc_put_line_time: Option<fugit::MicrosDurationU64>,
     }
 
     impl ActivationLogReaderProfiler {
@@ -51,6 +52,7 @@ pub mod activation_log_reader {
                 wc_alr_smallwhetstone_time: None,
                 wc_al_read_time: None,
                 wc_alr_read_time: None,
+                wc_put_line_time: None,
             }
         }
     }
@@ -71,12 +73,12 @@ pub mod activation_log_reader {
         fn update_wcet(&mut self) {
             let current_alr_smallwhetstone_time = self.lap_time(1);
             let current_al_read_time = self.lap_time(3);
-            let mut current_alr_read_time: Option<fugit::MicrosDurationU64> = None;
-            for lap in 1..=self.stopwatch.lap_count() {
-                current_alr_read_time = current_alr_read_time.map_or(self.lap_time(lap), |curr| {
-                    Some(curr + self.lap_time(lap).unwrap_or(0.micros()))
-                });
-            }
+            let current_alr_read_time =
+                match (self.lap_time(2), self.lap_time(3), self.lap_time(4)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
+            let current_put_line_time = self.lap_time(5);
 
             self.wc_alr_smallwhetstone_time =
                 self.wc_alr_smallwhetstone_time
@@ -94,6 +96,9 @@ pub mod activation_log_reader {
                 .map_or(current_alr_read_time, |worst| {
                     Some(max(worst, current_alr_read_time.unwrap_or(0.micros())))
                 });
+            self.wc_put_line_time = self.wc_put_line_time.map_or(current_put_line_time, |worst| {
+                Some(max(worst, current_put_line_time.unwrap_or(0.micros())))
+            });
         }
 
         fn log(&self) {
@@ -103,10 +108,12 @@ pub mod activation_log_reader {
                 worst case alr_smallwhetstone = {}
                 worst case al_read = {}
                 worst case alr_read = {}
+                worst case put_line = {}
             ",
                 self.wc_alr_smallwhetstone_time,
                 self.wc_al_read_time,
-                self.wc_alr_read_time
+                self.wc_alr_read_time,
+                self.wc_put_line_time,
             );
         }
     }
@@ -153,12 +160,11 @@ pub mod external_event_server {
         fn update_wcet(&mut self) {
             let current_al_write_time = self.lap_time(2);
             let mut current_ees_write_time = None;
-            for lap in 1..=self.stopwatch.lap_count() {
-                current_ees_write_time = current_ees_write_time
-                    .map_or(self.lap_time(lap), |current| {
-                        Some(current + self.lap_time(lap).unwrap_or(0.micros()))
-                    });
-            }
+            let current_ees_write_time = 
+                match (self.lap_time(1), self.lap_time(2), self.lap_time(3)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
 
             self.wc_al_write_time = self
                 .wc_al_write_time

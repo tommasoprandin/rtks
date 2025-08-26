@@ -119,7 +119,7 @@ mod app {
         ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
         #[cfg(feature = "profiling-activation_log_reader")]
-        activation_log_reader_times: [u32; 5] = [0; 5],
+        activation_log_reader_times: [u32; 6] = [0; 6],
         #[cfg(feature = "profiling-external_event_server")]
         external_event_server_times: [u32; 4] = [0; 4],
         #[cfg(feature = "profiling-on_call_producer")]

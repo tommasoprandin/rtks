@@ -81,12 +81,12 @@ pub async fn regular_producer_task<
 ) -> ! {
     activation_manager::activation_cyclic().await;
     loop {
-        #[cfg(feature = "profiling-regular_producer")]
-        locals.profiler.reset();
-
         locals.next_time = Mono::now() + PERIOD.millis();
         locals.activation_count += 1;
 
+        #[cfg(feature = "profiling-regular_producer")]
+        locals.profiler.reset();
+        
         // BEGIN REGULAR_PRODUCER_OPERATION
         // Standard workload
         if let Err(err) = production_workload::small_whetstone(REGULAR_PRODUCER_WORKLOAD) {

@@ -84,6 +84,8 @@ pub async fn activation_log_reader<
         locals.profiler.lap(); // Lap 1: alr_small_whetstone
 
         shared.activation_log.lock(|al| {
+            #[cfg(feature = "profiling-activation_log_reader")]
+            locals.profiler.lap(); // Lap 2: start al_read
 
             let (activations, last) = al.read();
 
@@ -98,6 +100,10 @@ pub async fn activation_log_reader<
         });
         #[cfg(feature = "profiling-activation_log_reader")]
         locals.profiler.lap(); // Lap 4: alr_read
+
+        defmt::info!("End of parameterless sporadic activation.");
+        #[cfg(feature = "profiling-activation_log_reader")]
+        locals.profiler.lap(); // Lap 5: put_line
 
         // Cancel deadline
         shared.deadline_protected_object.lock(|dpo| {
