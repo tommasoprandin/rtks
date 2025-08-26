@@ -73,11 +73,11 @@ pub mod activation_log_reader {
         fn update_wcet(&mut self) {
             let current_alr_smallwhetstone_time = self.lap_time(1);
             let current_al_read_time = self.lap_time(3);
-            let current_alr_read_time =
-                match (self.lap_time(2), self.lap_time(3), self.lap_time(4)) {
-                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
-                    _ => None,
-                };
+            let current_alr_read_time = match (self.lap_time(2), self.lap_time(3), self.lap_time(4))
+            {
+                (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                _ => None,
+            };
             let current_put_line_time = self.lap_time(5);
 
             self.wc_alr_smallwhetstone_time =
@@ -96,9 +96,11 @@ pub mod activation_log_reader {
                 .map_or(current_alr_read_time, |worst| {
                     Some(max(worst, current_alr_read_time.unwrap_or(0.micros())))
                 });
-            self.wc_put_line_time = self.wc_put_line_time.map_or(current_put_line_time, |worst| {
-                Some(max(worst, current_put_line_time.unwrap_or(0.micros())))
-            });
+            self.wc_put_line_time = self
+                .wc_put_line_time
+                .map_or(current_put_line_time, |worst| {
+                    Some(max(worst, current_put_line_time.unwrap_or(0.micros())))
+                });
         }
 
         fn log(&self) {
@@ -159,8 +161,7 @@ pub mod external_event_server {
 
         fn update_wcet(&mut self) {
             let current_al_write_time = self.lap_time(2);
-            let mut current_ees_write_time = None;
-            let current_ees_write_time = 
+            let current_ees_write_time =
                 match (self.lap_time(1), self.lap_time(2), self.lap_time(3)) {
                     (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
                     _ => None,
