@@ -82,22 +82,29 @@ pub async fn external_event_server<
             #[cfg(feature = "profiling-external_event_server")]
             locals.profiler.lap(); // Lap 2: end al_write
         });
+        #[cfg(feature = "profiling-external_event_server")]
+        locals.profiler.lap(); // Lap 3: ees_write
+
+        // Cancel deadline
+        shared.deadline_protected_object.lock(|dpo| {
+            #[cfg(feature = "profiling-external_event_server")]
+            locals.profiler.lap(); // Lap 4: start cancel_deadline
+            dpo.cancel_deadline(locals.activation_count);
+            #[cfg(feature = "profiling-external_event_server")]
+            locals.profiler.lap(); // Lap 5: end cancel_deadline
+        });
+        #[cfg(feature = "profiling-external_event_server")]
+        locals.profiler.lap(); // Lap 6: dpo_cancel_deadline
 
         #[cfg(feature = "profiling-external_event_server")]
         {
             use crate::profiling::WCET_THRESHOLD;
 
-            locals.profiler.lap(); // Lap 3: ees_write
             locals.profiler.update_wcet();
             if locals.activation_count == WCET_THRESHOLD {
                 locals.profiler.log();
                 defmt::panic!("External event server profiling finished");
             }
         }
-
-        // Cancel deadline
-        shared.deadline_protected_object.lock(|dpo| {
-            dpo.cancel_deadline(locals.activation_count);
-        });
     }
 }

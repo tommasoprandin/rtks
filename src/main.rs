@@ -119,13 +119,13 @@ mod app {
         ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
         #[cfg(feature = "profiling-activation_log_reader")]
-        activation_log_reader_times: [u32; 6] = [0; 6],
+        activation_log_reader_times: [u32; 9] = [0; 9],
         #[cfg(feature = "profiling-external_event_server")]
-        external_event_server_times: [u32; 4] = [0; 4],
+        external_event_server_times: [u32; 7] = [0; 7],
         #[cfg(feature = "profiling-on_call_producer")]
-        on_call_producer_times: [u32; 6] = [0; 6],
+        on_call_producer_times: [u32; 9] = [0; 9],
         #[cfg(feature = "profiling-regular_producer")]
-        regular_producer_times: [u32; 8] = [0; 8],
+        regular_producer_times: [u32; 12] = [0; 12],
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::info!("Init");

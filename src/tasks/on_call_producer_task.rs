@@ -103,8 +103,14 @@ pub async fn on_call_producer_task<
 
         // Cancel deadline
         shared.deadline_protected_object.lock(|dpo| {
+            #[cfg(feature = "profiling-on_call_producer")]
+            locals.profiler.lap(); // Lap 6: start cancel_deadline
             dpo.cancel_deadline(locals.activation_count);
+            #[cfg(feature = "profiling-on_call_producer")]
+            locals.profiler.lap(); // Lap 7: end cancel_deadline
         });
+        #[cfg(feature = "profiling-on_call_producer")]
+        locals.profiler.lap(); // Lap 8: dpo_cancel_deadline
 
         #[cfg(feature = "profiling-on_call_producer")]
         {

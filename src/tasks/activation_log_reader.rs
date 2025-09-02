@@ -107,8 +107,14 @@ pub async fn activation_log_reader<
 
         // Cancel deadline
         shared.deadline_protected_object.lock(|dpo| {
+            #[cfg(feature = "profiling-activation_log_reader")]
+            locals.profiler.lap(); // Lap 6: start cancel_deadline
             dpo.cancel_deadline(locals.activation_count);
+            #[cfg(feature = "profiling-activation_log_reader")]
+            locals.profiler.lap(); // Lap 7: end cancel_deadline
         });
+        #[cfg(feature = "profiling-activation_log_reader")]
+        locals.profiler.lap(); // Lap 8: dpo_cancel_deadline
 
         #[cfg(feature = "profiling-activation_log_reader")]
         {

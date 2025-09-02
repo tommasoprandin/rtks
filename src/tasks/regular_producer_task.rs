@@ -134,12 +134,20 @@ pub async fn regular_producer_task<
         }
 
         defmt::info!("End of cyclic activation.");
+        #[cfg(feature = "profiling-regular_producer")]
+        locals.profiler.lap(); // Lap 8: put_line
         // END REGULAR_PRODUCER_OPERATION
 
         // Cancel deadline
         shared.deadline_protected_object.lock(|dpo| {
+            #[cfg(feature = "profiling-regular_producer")]
+            locals.profiler.lap(); // Lap 9: start cancel_deadline_simple
             dpo.cancel_deadline(locals.activation_count);
+            #[cfg(feature = "profiling-regular_producer")]
+            locals.profiler.lap(); // Lap 10: end cancel_deadline_simple
         });
+        #[cfg(feature = "profiling-regular_producer")]
+        locals.profiler.lap(); // Lap 11: cancel_deadline
 
         #[cfg(feature = "profiling-regular_producer")]
         {

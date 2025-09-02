@@ -34,11 +34,6 @@ impl DeadlineProtectedObject {
                 self.misses,
                 self.activations
             );
-        } else {
-            defmt::info!(
-                "Deadline for task '{}' was cancelled",
-                self.name
-            );
         }
         // reset deadline object
         self.cancelled = false;

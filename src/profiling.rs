@@ -43,6 +43,8 @@ pub mod activation_log_reader {
         wc_al_read_time: Option<fugit::MicrosDurationU64>,
         wc_alr_read_time: Option<fugit::MicrosDurationU64>,
         wc_put_line_time: Option<fugit::MicrosDurationU64>,
+        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_dpo_cancel_deadline: Option<fugit::MicrosDurationU64>,
     }
 
     impl ActivationLogReaderProfiler {
@@ -53,6 +55,8 @@ pub mod activation_log_reader {
                 wc_al_read_time: None,
                 wc_alr_read_time: None,
                 wc_put_line_time: None,
+                wc_cancel_deadline: None,
+                wc_dpo_cancel_deadline: None,
             }
         }
     }
@@ -79,6 +83,12 @@ pub mod activation_log_reader {
                     _ => None,
                 };
             let current_put_line_time = self.lap_time(5);
+            let current_cancel_deadline = self.lap_time(7);
+            let current_dpo_cancel_deadline = 
+                match (self.lap_time(6), self.lap_time(7), self.lap_time(8)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
 
             self.wc_alr_smallwhetstone_time =
                 self.wc_alr_smallwhetstone_time
@@ -99,6 +109,16 @@ pub mod activation_log_reader {
             self.wc_put_line_time = self.wc_put_line_time.map_or(current_put_line_time, |worst| {
                 Some(max(worst, current_put_line_time.unwrap_or(0.micros())))
             });
+            self.wc_cancel_deadline = self
+                .wc_cancel_deadline
+                .map_or(current_cancel_deadline, |worst| {
+                    Some(max(worst, current_cancel_deadline.unwrap_or(0.micros())))
+                });
+            self.wc_dpo_cancel_deadline = self
+                .wc_dpo_cancel_deadline
+                .map_or(current_dpo_cancel_deadline, |worst| {
+                    Some(max(worst, current_dpo_cancel_deadline.unwrap_or(0.micros())))
+                })
         }
 
         fn log(&self) {
@@ -109,11 +129,15 @@ pub mod activation_log_reader {
                 worst case al_read = {}
                 worst case alr_read = {}
                 worst case put_line = {}
+                worst case cancel_deadline = {}
+                worst case dpo_cancel_deadline = {}
             ",
                 self.wc_alr_smallwhetstone_time,
                 self.wc_al_read_time,
                 self.wc_alr_read_time,
                 self.wc_put_line_time,
+                self.wc_cancel_deadline,
+                self.wc_dpo_cancel_deadline
             );
         }
     }
@@ -132,6 +156,8 @@ pub mod external_event_server {
         stopwatch: StopWatch<'static>,
         wc_al_write_time: Option<fugit::MicrosDurationU64>,
         wc_ees_write_time: Option<fugit::MicrosDurationU64>,
+        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_ees_cancel_deadline: Option<fugit::MicrosDurationU64>,
     }
 
     impl ExternalEventServerProfiler {
@@ -140,6 +166,8 @@ pub mod external_event_server {
                 stopwatch,
                 wc_al_write_time: None,
                 wc_ees_write_time: None,
+                wc_cancel_deadline: None,
+                wc_ees_cancel_deadline: None,
             }
         }
     }
@@ -165,6 +193,12 @@ pub mod external_event_server {
                     (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
                     _ => None,
                 };
+            let current_cancel_deadline = self.lap_time(4);
+            let current_ees_cancel_deadline =
+                match (self.lap_time(5), self.lap_time(6), self.lap_time(7)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
 
             self.wc_al_write_time = self
                 .wc_al_write_time
@@ -175,6 +209,16 @@ pub mod external_event_server {
                 .wc_ees_write_time
                 .map_or(current_ees_write_time, |worst| {
                     Some(max(worst, current_ees_write_time.unwrap_or(0.micros())))
+                });
+            self.wc_cancel_deadline = self
+                .wc_cancel_deadline
+                .map_or(current_cancel_deadline, |worst| {
+                    Some(max(worst, current_cancel_deadline.unwrap_or(0.micros())))
+                });
+            self.wc_ees_cancel_deadline = self
+                .wc_ees_cancel_deadline
+                .map_or(current_ees_cancel_deadline, |worst| {
+                    Some(max(worst, current_ees_cancel_deadline.unwrap_or(0.micros())))
                 })
         }
 
@@ -207,6 +251,8 @@ pub mod on_call_producer {
         wc_extract_workload_time: Option<fugit::MicrosDurationU64>,
         wc_ocp_smallwhetstone_time: Option<fugit::MicrosDurationU64>,
         wc_put_line_time: Option<fugit::MicrosDurationU64>,
+        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_ocp_cancel_deadline: Option<fugit::MicrosDurationU64>,
     }
 
     impl OnCallProducerProfiler {
@@ -217,6 +263,8 @@ pub mod on_call_producer {
                 wc_extract_workload_time: None,
                 wc_ocp_smallwhetstone_time: None,
                 wc_put_line_time: None,
+                wc_cancel_deadline: None,
+                wc_ocp_cancel_deadline: None,
             }
         }
     }
@@ -243,6 +291,12 @@ pub mod on_call_producer {
                 };
             let current_ocp_smallwhetstone_time = self.lap_time(4);
             let current_put_line_time = self.lap_time(5);
+            let current_cancel_deadline = self.lap_time(7);
+            let current_ocp_cancel_deadline =
+                match (self.lap_time(6), self.lap_time(7), self.lap_time(8)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
 
             if let Some(current) = current_rb_extract_time {
                 self.wc_rb_extract_time = Some(
@@ -268,6 +322,18 @@ pub mod on_call_producer {
                         .map_or(current, |worst| max(current, worst)),
                 );
             }
+            if let Some(current) = current_cancel_deadline {
+                self.wc_cancel_deadline = Some(
+                    self.wc_cancel_deadline
+                        .map_or(current, |worst| max(current, worst)),
+                );
+            }
+            if let Some(current) = current_ocp_cancel_deadline {
+                self.wc_ocp_cancel_deadline = Some(
+                    self.wc_ocp_cancel_deadline
+                        .map_or(current, |worst| max(current, worst)),
+                );
+            }
         }
 
         fn log(&self) {
@@ -278,11 +344,15 @@ pub mod on_call_producer {
                 worst case extract_workload = {}
                 worst case ocp_small_whetstone = {}
                 worst case put_line = {}
+                worst case cancel_deadline = {}
+                worst case ocp_cancel_deadline = {}
             ",
                 self.wc_rb_extract_time,
                 self.wc_extract_workload_time,
                 self.wc_ocp_smallwhetstone_time,
                 self.wc_put_line_time,
+                self.wc_cancel_deadline,
+                self.wc_ocp_cancel_deadline
             );
         }
     }
@@ -305,6 +375,8 @@ pub mod regular_producer {
         wc_ocp_activation_time: Option<fugit::MicrosDurationU64>,
         wc_check_due_time: Option<fugit::MicrosDurationU64>,
         wc_alr_signal_time: Option<fugit::MicrosDurationU64>,
+        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_rp_cancel_deadline: Option<fugit::MicrosDurationU64>,
     }
 
     impl RegularProducerProfiler {
@@ -317,6 +389,8 @@ pub mod regular_producer {
                 wc_ocp_activation_time: None,
                 wc_check_due_time: None,
                 wc_alr_signal_time: None,
+                wc_cancel_deadline: None,
+                wc_rp_cancel_deadline: None,
             }
         }
     }
@@ -345,6 +419,13 @@ pub mod regular_producer {
                 };
             let current_check_due_time = self.lap_time(3);
             let current_alr_signal_time = self.lap_time(7);
+            let current_cancel_deadline = self.lap_time(9);
+            let current_rp_cancel_deadline =
+                match (self.lap_time(8), self.lap_time(9), self.lap_time(10)) {
+                    (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                    _ => None,
+                };
+
             if let Some(current) = current_rp_smallwhetstone_time {
                 self.wc_rp_smallwhetstone_time = Some(
                     self.wc_rp_smallwhetstone_time
@@ -378,6 +459,18 @@ pub mod regular_producer {
             if let Some(current) = current_alr_signal_time {
                 self.wc_alr_signal_time = Some(
                     self.wc_alr_signal_time
+                        .map_or(current, |worst| max(current, worst)),
+                );
+            }
+            if let Some(current) = current_cancel_deadline {
+                self.wc_cancel_deadline = Some(
+                    self.wc_cancel_deadline
+                        .map_or(current, |worst| max(current, worst)),
+                );
+            }
+            if let Some(current) = current_rp_cancel_deadline {
+                self.wc_rp_cancel_deadline = Some(
+                    self.wc_rp_cancel_deadline
                         .map_or(current, |worst| max(current, worst)),
                 );
             }
