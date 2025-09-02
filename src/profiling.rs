@@ -12,6 +12,14 @@ use rtic_monotonics::fugit::{self};
     feature = "profiling-on_call_producer",
     feature = "profiling-regular_producer",
 ))]
+type ProfilingDuration = fugit::NanosDurationU64;
+
+#[cfg(any(
+    feature = "profiling-activation_log_reader",
+    feature = "profiling-external_event_server",
+    feature = "profiling-on_call_producer",
+    feature = "profiling-regular_producer",
+))]
 pub const WCET_THRESHOLD: u32 = 100;
 
 #[cfg(any(
@@ -23,7 +31,7 @@ pub const WCET_THRESHOLD: u32 = 100;
 pub trait Profiler {
     fn reset(&mut self);
     fn lap(&mut self);
-    fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64>;
+    fn lap_time(&self, lap: usize) -> Option<ProfilingDuration>;
     fn update_wcet(&mut self);
     fn log(&self);
 }
@@ -32,19 +40,19 @@ pub trait Profiler {
 pub mod activation_log_reader {
     use core::cmp::max;
 
-    use rtic_monotonics::fugit::{self, ExtU64};
+    use rtic_monotonics::fugit::ExtU64;
     use stm32f4xx_hal::dwt::StopWatch;
 
-    use crate::profiling::Profiler;
+    use crate::profiling::{Profiler, ProfilingDuration};
 
     pub struct ActivationLogReaderProfiler {
         stopwatch: StopWatch<'static>,
-        wc_alr_smallwhetstone_time: Option<fugit::MicrosDurationU64>,
-        wc_al_read_time: Option<fugit::MicrosDurationU64>,
-        wc_alr_read_time: Option<fugit::MicrosDurationU64>,
-        wc_put_line_time: Option<fugit::MicrosDurationU64>,
-        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
-        wc_dpo_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_alr_smallwhetstone_time: Option<ProfilingDuration>,
+        wc_al_read_time: Option<ProfilingDuration>,
+        wc_alr_read_time: Option<ProfilingDuration>,
+        wc_put_line_time: Option<ProfilingDuration>,
+        wc_cancel_deadline: Option<ProfilingDuration>,
+        wc_dpo_cancel_deadline: Option<ProfilingDuration>,
     }
 
     impl ActivationLogReaderProfiler {
@@ -70,15 +78,21 @@ pub mod activation_log_reader {
             self.stopwatch.lap();
         }
 
-        fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64> {
-            self.stopwatch.lap_time(lap).map(|d| d.as_micros().micros())
+        fn lap_time(&self, lap: usize) -> Option<ProfilingDuration> {
+            self.stopwatch.lap_time(lap).map(|d| d.as_nanos().nanos())
         }
 
         fn update_wcet(&mut self) {
             let current_alr_smallwhetstone_time = self.lap_time(1);
             let current_al_read_time = self.lap_time(3);
-            let current_alr_read_time =
-                match (self.lap_time(2), self.lap_time(3), self.lap_time(4)) {
+            let current_alr_read_time = match (self.lap_time(2), self.lap_time(3), self.lap_time(4))
+            {
+                (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
+                _ => None,
+            };
+            let current_put_line_time = self.lap_time(5);
+            let current_cancel_deadline = self.lap_time(7);
+            let current_dpo_cancel_deadline = match (self.lap_time(6), self.lap_time(7), self.lap_time(8)) {
                     (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
                     _ => None,
                 };
@@ -95,29 +109,36 @@ pub mod activation_log_reader {
                     .map_or(current_alr_smallwhetstone_time, |worst| {
                         Some(max(
                             worst,
-                            current_alr_smallwhetstone_time.unwrap_or(0.micros()),
+                            current_alr_smallwhetstone_time.unwrap_or(0.nanos()),
                         ))
                     });
             self.wc_al_read_time = self.wc_al_read_time.map_or(current_al_read_time, |worst| {
-                Some(max(worst, current_al_read_time.unwrap_or(0.micros())))
+                Some(max(worst, current_al_read_time.unwrap_or(0.nanos())))
             });
             self.wc_alr_read_time = self
                 .wc_alr_read_time
                 .map_or(current_alr_read_time, |worst| {
-                    Some(max(worst, current_alr_read_time.unwrap_or(0.micros())))
+                    Some(max(worst, current_alr_read_time.unwrap_or(0.nanos())))
                 });
-            self.wc_put_line_time = self.wc_put_line_time.map_or(current_put_line_time, |worst| {
-                Some(max(worst, current_put_line_time.unwrap_or(0.micros())))
-            });
+            self.wc_put_line_time = self
+                .wc_put_line_time
+                .map_or(current_put_line_time, |worst| {
+                    Some(max(worst, current_put_line_time.unwrap_or(0.nanos())))
+                });
+            self.wc_put_line_time = self
+                .wc_put_line_time
+                .map_or(current_put_line_time, |worst| {
+                    Some(max(worst, current_put_line_time.unwrap_or(0.nanos())))
+                });
             self.wc_cancel_deadline = self
                 .wc_cancel_deadline
                 .map_or(current_cancel_deadline, |worst| {
-                    Some(max(worst, current_cancel_deadline.unwrap_or(0.micros())))
+                    Some(max(worst, current_cancel_deadline.unwrap_or(0.nanos())))
                 });
             self.wc_dpo_cancel_deadline = self
                 .wc_dpo_cancel_deadline
                 .map_or(current_dpo_cancel_deadline, |worst| {
-                    Some(max(worst, current_dpo_cancel_deadline.unwrap_or(0.micros())))
+                    Some(max(worst, current_dpo_cancel_deadline.unwrap_or(0.nanos())))
                 })
         }
 
@@ -147,17 +168,17 @@ pub mod activation_log_reader {
 pub mod external_event_server {
     use core::cmp::max;
 
-    use rtic_monotonics::fugit::{self, ExtU64};
+    use rtic_monotonics::fugit::ExtU64;
     use stm32f4xx_hal::dwt::StopWatch;
 
-    use crate::profiling::Profiler;
+    use crate::profiling::{Profiler, ProfilingDuration};
 
     pub struct ExternalEventServerProfiler {
         stopwatch: StopWatch<'static>,
-        wc_al_write_time: Option<fugit::MicrosDurationU64>,
-        wc_ees_write_time: Option<fugit::MicrosDurationU64>,
-        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
-        wc_ees_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_al_write_time: Option<ProfilingDuration>,
+        wc_ees_write_time: Option<ProfilingDuration>,
+        wc_cancel_deadline: Option<ProfilingDuration>,
+        wc_ees_cancel_deadline: Option<ProfilingDuration>,
     }
 
     impl ExternalEventServerProfiler {
@@ -181,14 +202,13 @@ pub mod external_event_server {
             self.stopwatch.lap();
         }
 
-        fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64> {
-            self.stopwatch.lap_time(lap).map(|d| d.as_micros().micros())
+        fn lap_time(&self, lap: usize) -> Option<ProfilingDuration> {
+            self.stopwatch.lap_time(lap).map(|d| d.as_nanos().nanos())
         }
 
         fn update_wcet(&mut self) {
             let current_al_write_time = self.lap_time(2);
-            let mut current_ees_write_time = None;
-            let current_ees_write_time = 
+            let current_ees_write_time =
                 match (self.lap_time(1), self.lap_time(2), self.lap_time(3)) {
                     (Some(time_1), Some(time_2), Some(time_3)) => Some(time_1 + time_2 + time_3),
                     _ => None,
@@ -203,22 +223,22 @@ pub mod external_event_server {
             self.wc_al_write_time = self
                 .wc_al_write_time
                 .map_or(current_al_write_time, |worst| {
-                    Some(max(worst, current_al_write_time.unwrap_or(0.micros())))
+                    Some(max(worst, current_al_write_time.unwrap_or(0.nanos())))
                 });
             self.wc_ees_write_time = self
                 .wc_ees_write_time
                 .map_or(current_ees_write_time, |worst| {
-                    Some(max(worst, current_ees_write_time.unwrap_or(0.micros())))
+                    Some(max(worst, current_ees_write_time.unwrap_or(0.nanos())))
                 });
             self.wc_cancel_deadline = self
                 .wc_cancel_deadline
                 .map_or(current_cancel_deadline, |worst| {
-                    Some(max(worst, current_cancel_deadline.unwrap_or(0.micros())))
+                    Some(max(worst, current_cancel_deadline.unwrap_or(0.nanos())))
                 });
             self.wc_ees_cancel_deadline = self
                 .wc_ees_cancel_deadline
                 .map_or(current_ees_cancel_deadline, |worst| {
-                    Some(max(worst, current_ees_cancel_deadline.unwrap_or(0.micros())))
+                    Some(max(worst, current_ees_cancel_deadline.unwrap_or(0.nanos())))
                 })
         }
 
@@ -228,9 +248,13 @@ pub mod external_event_server {
                 External event server profiler:
                 worst case al_write = {}
                 worst case ees_write = {}
+                worst case cancel_deadline = {}
+                worst case ees_cancel_deadline = {}
             ",
                 self.wc_al_write_time,
                 self.wc_ees_write_time,
+                self.wc_cancel_deadline,
+                self.wc_ees_cancel_deadline
             );
         }
     }
@@ -240,19 +264,19 @@ pub mod external_event_server {
 pub mod on_call_producer {
     use core::cmp::max;
 
-    use rtic_monotonics::fugit::{self, ExtU64};
+    use rtic_monotonics::fugit::ExtU64;
     use stm32f4xx_hal::dwt::StopWatch;
 
-    use crate::profiling::Profiler;
+    use crate::profiling::{Profiler, ProfilingDuration};
 
     pub struct OnCallProducerProfiler {
         stopwatch: StopWatch<'static>,
-        wc_rb_extract_time: Option<fugit::MicrosDurationU64>,
-        wc_extract_workload_time: Option<fugit::MicrosDurationU64>,
-        wc_ocp_smallwhetstone_time: Option<fugit::MicrosDurationU64>,
-        wc_put_line_time: Option<fugit::MicrosDurationU64>,
-        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
-        wc_ocp_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_rb_extract_time: Option<ProfilingDuration>,
+        wc_extract_workload_time: Option<ProfilingDuration>,
+        wc_ocp_smallwhetstone_time: Option<ProfilingDuration>,
+        wc_put_line_time: Option<ProfilingDuration>,
+        wc_cancel_deadline: Option<ProfilingDuration>,
+        wc_ocp_cancel_deadline: Option<ProfilingDuration>,
     }
 
     impl OnCallProducerProfiler {
@@ -278,8 +302,8 @@ pub mod on_call_producer {
             self.stopwatch.lap();
         }
 
-        fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64> {
-            self.stopwatch.lap_time(lap).map(|d| d.as_micros().micros())
+        fn lap_time(&self, lap: usize) -> Option<ProfilingDuration> {
+            self.stopwatch.lap_time(lap).map(|d| d.as_nanos().nanos())
         }
 
         fn update_wcet(&mut self) {
@@ -362,21 +386,21 @@ pub mod on_call_producer {
 pub mod regular_producer {
     use core::cmp::max;
 
-    use rtic_monotonics::fugit::{self, ExtU64};
+    use rtic_monotonics::fugit::ExtU64;
     use stm32f4xx_hal::dwt::StopWatch;
 
-    use crate::profiling::Profiler;
+    use crate::profiling::{Profiler, ProfilingDuration};
 
     pub struct RegularProducerProfiler {
         stopwatch: StopWatch<'static>,
-        wc_rp_smallwhetstone_time: Option<fugit::MicrosDurationU64>,
-        wc_due_activation_time: Option<fugit::MicrosDurationU64>,
-        wc_rb_deposit_time: Option<fugit::MicrosDurationU64>,
-        wc_ocp_activation_time: Option<fugit::MicrosDurationU64>,
-        wc_check_due_time: Option<fugit::MicrosDurationU64>,
-        wc_alr_signal_time: Option<fugit::MicrosDurationU64>,
-        wc_cancel_deadline: Option<fugit::MicrosDurationU64>,
-        wc_rp_cancel_deadline: Option<fugit::MicrosDurationU64>,
+        wc_rp_smallwhetstone_time: Option<ProfilingDuration>,
+        wc_due_activation_time: Option<ProfilingDuration>,
+        wc_rb_deposit_time: Option<ProfilingDuration>,
+        wc_ocp_activation_time: Option<ProfilingDuration>,
+        wc_check_due_time: Option<ProfilingDuration>,
+        wc_alr_signal_time: Option<ProfilingDuration>,
+        wc_cancel_deadline: Option<ProfilingDuration>,
+        wc_rp_cancel_deadline: Option<ProfilingDuration>,
     }
 
     impl RegularProducerProfiler {
@@ -404,8 +428,8 @@ pub mod regular_producer {
             self.stopwatch.lap();
         }
 
-        fn lap_time(&self, lap: usize) -> Option<fugit::MicrosDurationU64> {
-            self.stopwatch.lap_time(lap).map(|d| d.as_micros().micros())
+        fn lap_time(&self, lap: usize) -> Option<ProfilingDuration> {
+            self.stopwatch.lap_time(lap).map(|d| d.as_nanos().nanos())
         }
 
         fn update_wcet(&mut self) {

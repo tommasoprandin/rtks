@@ -87,16 +87,10 @@ pub async fn activation_log_reader<
             #[cfg(feature = "profiling-activation_log_reader")]
             locals.profiler.lap(); // Lap 2: start al_read
 
-            let (activations, last) = al.read();
+            let (_activations, _last) = al.read();
 
             #[cfg(feature = "profiling-activation_log_reader")]
             locals.profiler.lap(); // Lap 3: end al_read
-
-            defmt::info!(
-                "Activation log reader: activations = {}, last = {}",
-                activations,
-                last
-            );
         });
         #[cfg(feature = "profiling-activation_log_reader")]
         locals.profiler.lap(); // Lap 4: alr_read
