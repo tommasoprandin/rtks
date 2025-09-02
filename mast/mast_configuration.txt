@@ -19,7 +19,7 @@ Shared_Resource (
 Operation (
 	Type => Simple,
 	Name => rb_deposit,
-	Worst_Case_Execution_Time => 2.000E-06,
+	Worst_Case_Execution_Time => 2.398E-06,
 	Shared_Resources_To_Lock =>
 		( request_buffer),
 	Shared_Resources_To_Unlock =>
@@ -28,7 +28,7 @@ Operation (
 Operation (
 	Type => Simple,
 	Name => rb_extract,
-	Worst_Case_Execution_Time => 2.000E-06,
+	Worst_Case_Execution_Time => 0.303E-06,
 	Shared_Resources_To_Lock =>
 		( request_buffer),
 	Shared_Resources_To_Unlock =>
@@ -37,7 +37,17 @@ Operation (
 Operation (
     Type => Simple,
     Name => put_line,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 8.017E-06);
+
+Operation (
+    Type => Simple,
+    Name => signal_wait,
+    Worst_Case_Execution_Time => 1.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => delay_until,
+    Worst_Case_Execution_Time => 1.000E-06);
 
 Shared_Resource (
     Type => Immediate_Ceiling_Resource,
@@ -48,7 +58,7 @@ Shared_Resource (
 Operation (
 	Type => Simple,
 	Name => al_write,
-	Worst_Case_Execution_Time => 2.000E-06,
+	Worst_Case_Execution_Time => 0.583E-06,
 	Shared_Resources_To_Lock =>
 		( activation_log),
 	Shared_Resources_To_Unlock =>
@@ -57,30 +67,29 @@ Operation (
 Operation (
 	Type => Simple,
 	Name => al_read,
-	Worst_Case_Execution_Time => 2.000E-06,
+	Worst_Case_Execution_Time => 1.360E-07,
 	Shared_Resources_To_Lock =>
 		( activation_log),
 	Shared_Resources_To_Unlock =>
 		( activation_log));
 
 Operation (
+    Type => Simple,
+    Name => barrier_reader_wait,
+    Worst_Case_Execution_Time => 1.000E-06 );
+
+Operation (
     Type => Enclosing,
     Name => extract_workload,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 0.814E-06,
     Composite_Operation_List =>
         ( rb_extract ));
 
+-- 278: 0.008692782 x20: 0.17385564 x: 1.86: 0.3233714901
 Operation (
     Type => Simple,
     Name => ocp_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation ( 
-    Type => Enclosing,
-    Name => ocp_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Composite_Operation_List =>
-        ( ocp_cancel_deadline_simple ));
+    Worst_Case_Execution_Time => 0.3233714901);
 
 Operation (
     Type => Composite,
@@ -93,7 +102,8 @@ Operation (
     Type => Composite,
     Name => ocp_job,
     Composite_Operation_List =>
-        ( extract_workload,
+        ( barrier_reader_wait,
+        extract_workload,
         ocp_operation,
         ocp_cancel_deadline));
 
@@ -129,50 +139,111 @@ Transaction (
 
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
-	Name => ocp_deadline,
+	Name => ocp_dpo,
 	Ceiling => 241,
 	Preassigned => YES);
 
 Operation (
-	Type => Simple,
-	Name => ocp_cancel_deadline_simple,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( ocp_deadline ),
+    Type => Simple,
+    Name => ocp_cancel_deadline_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( ocp_dpo ),
 	Shared_Resources_To_Unlock =>
-		( ocp_deadline ));
+		( ocp_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => ocp_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ocp_cancel_deadline_simple ));
+
+Scheduling_Server (
+    Type => Regular,
+    Name => ocp_watchdog,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 241,
+        Preassigned => YES),
+    Scheduler => fps);
 
 Operation (
     Type => Simple,
+    Name => ocp_deadline_miss_detected_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( ocp_dpo ),
+	Shared_Resources_To_Unlock =>
+		( ocp_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => ocp_deadline_miss_detected,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ocp_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => ocp_watchdog_job,
+    Composite_Operation_List =>
+        ( signal_wait,
+        delay_until,
+        ocp_deadline_miss_detected ));
+
+Transaction (
+    Type => regular,
+    Name => ocp_w_transaction,
+    External_Events =>
+        ( ( Type => Sporadic,
+            Name => ocp_w_activation,
+            Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( (Type => Regular,
+            Name => ocp_w_o1,
+            Timing_Requirements =>
+                ( Type => Hard_Global_Deadline,
+                    Deadline => 5.000000,
+                    Referenced_Event => ocp_w_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+        Input_Event => ocp_w_activation,
+        Output_Event => ocp_w_o1,
+        Activity_Operation => ocp_watchdog_job,
+        Activity_Server => ocp_watchdog)));
+
+Operation (
+    Type => Simple,
+    Name => wait_semaphore,
+    Worst_Case_Execution_Time => 0.6470E-06);
+
+-- 139: 0.004346391 x20: 0.086927882 x1.86: 0.1616857452
+Operation (
+    Type => Simple,
     Name => alr_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.1616857452);
 
 Operation (
     Type => Enclosing,
     Name => alr_read,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 0.647E-06,
     Composite_Operation_List =>
         ( al_read ));
-
-Operation ( 
-    Type => Enclosing,
-    Name => alr_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Composite_Operation_List =>
-        ( alr_cancel_deadline_simple ));
 
 Operation (
     Type => Composite,
     Name => alr_job,
     Composite_Operation_List =>
-        ( alr_small_whetstone,
+        ( wait_semaphore,
+        alr_small_whetstone,
         alr_read,
-        put_line,
-        alr_cancel_deadline));
+        put_line, 
+        alr_cancel_deadline ));
 
 Transaction (
     Type => regular,
-    Name => ocp_transaction,
+    Name => alr_transaction,
     External_Events =>
         ( ( Type => Sporadic,
         Name => alr_activation,
@@ -183,35 +254,96 @@ Transaction (
         Timing_Requirements =>
         ( Type => Hard_Global_Deadline,
             Deadline => 1.000000,
-            Referenced_Event => ocp_activation))),
+            Referenced_Event => alr_activation))),
     Event_Handlers =>
     ( (Type => Activity,
-    Input_Event => alr_activation,
-    Output_Event => alro1,
-    Activity_Operation => alr_job,
-    Activity_Server => on_call_producer)));
+        Input_Event => alr_activation,
+        Output_Event => alro1,
+        Activity_Operation => alr_job,
+        Activity_Server => activation_log_reader)));
 
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
-	Name => alr_deadline,
+	Name => alr_dpo,
 	Ceiling => 241,
 	Preassigned => YES);
 
 Operation (
-	Type => Simple,
-	Name => alr_cancel_deadline_simple,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( alr_deadline ),
+    Type => Simple,
+    Name => alr_cancel_deadline_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( alr_dpo ),
 	Shared_Resources_To_Unlock =>
-		( alr_deadline ));
+		( alr_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => alr_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( alr_cancel_deadline_simple ));
+
+Scheduling_Server (
+    Type => Regular,
+    Name => alr_watchdog,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 241,
+        Preassigned => YES),
+    Scheduler => fps);
+
+Operation (
+    Type => Simple,
+    Name => alr_deadline_miss_detected_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( alr_dpo ),
+	Shared_Resources_To_Unlock =>
+		( alr_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => alr_deadline_miss_detected,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( alr_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => alr_watchdog_job,
+    Composite_Operation_List =>
+        ( signal_wait,
+        delay_until,
+        alr_deadline_miss_detected ));
+
+Transaction (
+    Type => regular,
+    Name => alr_w_transaction,
+    External_Events =>
+        ( ( Type => Sporadic,
+            Name => alr_w_activation,
+            Min_Interarrival => 3.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+            Name => alr_w_o1,
+            Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+                Deadline => 3.000000,
+                Referenced_Event => alr_w_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+        Input_Event => alr_w_activation,
+        Output_Event => alr_w_o1,
+        Activity_Operation => alr_watchdog_job,
+        Activity_Server => alr_watchdog)));
 
 Scheduling_Server (
     Type => Regular,
     Name => activation_log_reader,
     Server_Sched_Parameters =>
         ( Type => Fixed_Priority_Policy,
-        The_Priority => 11,
+        The_Priority => 3,
         Preassigned => YES),
     Scheduler => fps);
 
@@ -224,62 +356,46 @@ Scheduling_Server (
 		Preassigned => YES),
 	Scheduler => fps);
 
-Operation (
-    Type => Simple,
-    Name => rp_activation_calculations,
-    Worst_Case_Execution_Time => 2.000E-06);
-
+-- 756: 0.023639364 x20: 0.47278728 
 Operation (
     Type => Simple,
     Name => rp_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.47278728);
 
 Operation (
     Type => Simple,
     Name => due_activation,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.214E-06);
 
 Operation ( 
     Type => Enclosing,
     Name => ocp_activation,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 2.903E-06,
     Composite_Operation_List =>
         ( rb_deposit ));
 
 Operation (
     Type => Simple,
     Name => check_due,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.208E-06);
 
 Operation (
     Type => Simple,
     Name => alr_signal,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation ( 
-    Type => Enclosing,
-    Name => rp_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Composite_Operation_List =>
-        ( rp_cancel_deadline_simple ));
+    Worst_Case_Execution_Time => 1.982E-06);
 
 Operation (
     Type => Composite,
-    Name => rp_operation,
+    Name => rp_job,
     Composite_Operation_List =>
         (rp_small_whetstone,
         due_activation,
         ocp_activation,
         check_due,
         alr_signal,
-        put_line));
-
-Operation (
-    Type => Composite,
-    Name => rp_job,
-    Composite_Operation_List =>
-        (rp_operation,
-        rp_cancel_deadline));
+        put_line, 
+        rp_cancel_deadline, 
+        delay_until ));
 
 
 Transaction (
@@ -307,46 +423,107 @@ Transaction (
 
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
-	Name => rp_deadline,
+	Name => rp_dpo,
 	Ceiling => 241,
 	Preassigned => YES);
 
 Operation (
-	Type => Simple,
-	Name => rp_cancel_deadline_simple,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( rp_deadline ),
+    Type => Simple,
+    Name => rp_cancel_deadline_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( rp_dpo ),
 	Shared_Resources_To_Unlock =>
-		( rp_deadline ));
+		( rp_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => rp_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rp_cancel_deadline_simple ));
+
+Scheduling_Server (
+    Type => Regular,
+    Name => rp_watchdog,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 241,
+        Preassigned => YES),
+    Scheduler => fps);
+
+Operation (
+    Type => Simple,
+    Name => rp_deadline_miss_detected_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( rp_dpo ),
+	Shared_Resources_To_Unlock =>
+		( rp_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => rp_deadline_miss_detected,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( rp_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => rp_watchdog_job,
+    Composite_Operation_List =>
+        ( delay_until,
+        rp_deadline_miss_detected ));
+
+Transaction (
+    Type => regular,
+    Name => rp_w_transaction,
+    External_Events =>
+		( ( Type => Periodic,
+            Name => rp_w_activation,
+            Period => 1.000,
+            Max_Jitter => 0.000,
+            Phase => 0.000)),
+    Internal_Events =>
+        ( (Type => Regular,
+            Name => rp_w_o1,
+            Timing_Requirements =>
+                ( Type => Hard_Global_Deadline,
+                    Deadline => 1.000000,
+                    Referenced_Event => rp_w_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+        Input_Event => rp_w_activation,
+        Output_Event => rp_w_o1,
+        Activity_Operation => rp_watchdog_job,
+        Activity_Server => rp_watchdog)));
+
+Operation (
+    Type => Simple,
+    Name => event_queue_wait, 
+    Worst_Case_Execution_Time => 1.000E-06 );
 
 Operation (
     Type => Enclosing,
     Name => ees_write,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 1.071E-06,
     Composite_Operation_List =>
         ( al_write ));
-
-Operation ( 
-    Type => Enclosing,
-    Name => ees_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Composite_Operation_List =>
-        ( ees_cancel_deadline_simple ));
 
 Operation (
     Type => Composite,
     Name => ees_job,
     Composite_Operation_List =>
-        (ees_write,
-        ees_cancel_deadline));
+        ( event_queue_wait, 
+        ees_write,
+        ees_cancel_deadline ));
 
 Scheduling_Server (
     Type => Regular,
     Name => external_event_server,
     Server_Sched_Parameters =>
         ( Type => Fixed_Priority_Policy,
-        The_Priority => 3,
+        The_Priority => 11,
         Preassigned => YES),
     Scheduler => fps);
 
@@ -373,18 +550,79 @@ Transaction (
 
 Shared_Resource (
 	Type => Immediate_Ceiling_Resource,
-	Name => ees_deadline,
+	Name => ees_dpo,
 	Ceiling => 241,
 	Preassigned => YES);
 
 Operation (
-	Type => Simple,
-	Name => ees_cancel_deadline_simple,
-	Worst_Case_Execution_Time => 2.000E-06,
-	Shared_Resources_To_Lock =>
-		( ees_deadline ),
+    Type => Simple,
+    Name => ees_cancel_deadline_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( ees_dpo ),
 	Shared_Resources_To_Unlock =>
-		( ees_deadline ));
+		( ees_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => ees_cancel_deadline,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ees_cancel_deadline_simple ));
+
+Scheduling_Server (
+    Type => Regular,
+    Name => ees_watchdog,
+    Server_Sched_Parameters =>
+        ( Type => Fixed_Priority_Policy,
+        The_Priority => 241,
+        Preassigned => YES),
+    Scheduler => fps);
+
+Operation (
+    Type => Simple,
+    Name => ees_deadline_miss_detected_simple, 
+    Worst_Case_Execution_Time => 1.000E-06,
+    Shared_Resources_To_Lock =>
+		( ees_dpo ),
+	Shared_Resources_To_Unlock =>
+		( ees_dpo ));
+
+Operation ( 
+    Type => Enclosing,
+    Name => ees_deadline_miss_detected,
+    Worst_Case_Execution_Time => 2.000E-06,
+    Composite_Operation_List =>
+        ( ees_cancel_deadline_simple ));
+
+Operation (
+    Type => Composite,
+    Name => ees_watchdog_job,
+    Composite_Operation_List =>
+        ( signal_wait,
+        delay_until,
+        ees_deadline_miss_detected ));
+
+Transaction (
+    Type => regular,
+    Name => ees_w_transaction,
+    External_Events =>
+        ( ( Type => Sporadic,
+            Name => ees_w_activation,
+            Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+            Name => ees_w_o1,
+            Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+                Deadline => 5.000000,
+                Referenced_Event => ees_w_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+        Input_Event => ees_w_activation,
+        Output_Event => ees_w_o1,
+        Activity_Operation => ees_watchdog_job,
+        Activity_Server => ees_watchdog)));
 
 Scheduler (
 	Type => Primary_Scheduler,
@@ -393,6 +631,6 @@ Scheduler (
 	Policy =>
 		( Type => Fixed_Priority,
 		Worst_Context_Switch => 3.090E-06,
-		Max_Priority => 240,
+		Max_Priority => 241,
 		Min_Priority => 1));
 

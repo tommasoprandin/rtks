@@ -1,7 +1,7 @@
 Operation (
 	Type => Simple,
 	Name => rb_deposit,
-	Worst_Case_Execution_Time => 2.000E-06,
+	Worst_Case_Execution_Time => 2.398E-06,
 	Shared_Resources_To_Lock =>
 		( request_buffer),
 	Shared_Resources_To_Unlock =>
@@ -10,7 +10,7 @@ Operation (
 Operation (
 	Type => Simple,
 	Name => rb_extract,
-	Worst_Case_Execution_Time => 2.000E-06,
+	Worst_Case_Execution_Time => 0.303E-06,
 	Shared_Resources_To_Lock =>
 		( request_buffer),
 	Shared_Resources_To_Unlock =>

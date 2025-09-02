@@ -1,7 +1,12 @@
 Operation (
+    Type => Simple,
+    Name => event_queue_wait, 
+    Worst_Case_Execution_Time => 1.000E-06 );
+
+Operation (
     Type => Enclosing,
     Name => ees_write,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 1.071E-06,
     Composite_Operation_List =>
         ( al_write ));
 
@@ -9,4 +14,6 @@ Operation (
     Type => Composite,
     Name => ees_job,
     Composite_Operation_List =>
-        ( ees_write ));
+        ( event_queue_wait, 
+        ees_write,
+        ees_cancel_deadline ));
