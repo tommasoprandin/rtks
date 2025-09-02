@@ -11,16 +11,17 @@ linker = "flip-link"
 
 [target.thumbv7em-none-eabihf]
 rustflags = [
-  # cortex-m-rt linker script (will automatically pull in the memory.x file)
-  "-C", "link-arg=-Tlink.x",
-  "-C", "link-arg=--nmagic",
+    # cortex-m-rt linker script (will automatically pull in the memory.x file)
+    "-C",
+    "link-arg=-Tlink.x",
+    "-C",
+    "link-arg=--nmagic",
 
-  # add defmt link script
-  "-C", "link-arg=-Tdefmt.x",
+    # add defmt link script
+    "-C",
+    "link-arg=-Tdefmt.x",
 ]
-runner = [
-    "sh", "-c", 
-    """
+runner = ["sh", "-c", """
     if [ "$CARGO_TARGET_MODE" = "qemu" ]; then
     qemu-system-arm \
         -cpu cortex-m4 \
@@ -32,6 +33,4 @@ runner = [
     else
         probe-rs run --protocol swd --chip stm32f405rgtx $1
     fi
-    """,
-    "--"
-]
+    """, "--"]

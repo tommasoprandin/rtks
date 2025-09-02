@@ -1,21 +1,20 @@
 Operation (
+    Type => Simple,
+    Name => barrier_reader_wait,
+    Worst_Case_Execution_Time => 1.000E-06 );
+
+Operation (
     Type => Enclosing,
     Name => extract_workload,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 0.814E-06,
     Composite_Operation_List =>
         ( rb_extract ));
 
+-- 278: 0.008692782 x20: 0.17385564 x: 1.86: 0.3233714901
 Operation (
     Type => Simple,
     Name => ocp_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation ( 
-    Type => Enclosing,
-    Name => ocp_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Composite_Operation_List =>
-        ( ocp_cancel_deadline_simple ));
+    Worst_Case_Execution_Time => 0.3233714901);
 
 Operation (
     Type => Composite,
@@ -28,6 +27,7 @@ Operation (
     Type => Composite,
     Name => ocp_job,
     Composite_Operation_List =>
-        ( extract_workload,
+        ( barrier_reader_wait,
+        extract_workload,
         ocp_operation,
         ocp_cancel_deadline));

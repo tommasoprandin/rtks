@@ -1,56 +1,40 @@
-Operation (
-    Type => Simple,
-    Name => rp_activation_calculations,
-    Worst_Case_Execution_Time => 2.000E-06);
-
+-- 756: 0.023639364 x20: 0.47278728 
 Operation (
     Type => Simple,
     Name => rp_small_whetstone,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.47278728);
 
 Operation (
     Type => Simple,
     Name => due_activation,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.214E-06);
 
 Operation ( 
     Type => Enclosing,
     Name => ocp_activation,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 2.903E-06,
     Composite_Operation_List =>
         ( rb_deposit ));
 
 Operation (
     Type => Simple,
     Name => check_due,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 0.208E-06);
 
 Operation (
     Type => Simple,
     Name => alr_signal,
-    Worst_Case_Execution_Time => 2.000E-06);
-
-Operation ( 
-    Type => Enclosing,
-    Name => rp_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
-    Composite_Operation_List =>
-        ( rp_cancel_deadline_simple ));
+    Worst_Case_Execution_Time => 1.982E-06);
 
 Operation (
     Type => Composite,
-    Name => rp_operation,
+    Name => rp_job,
     Composite_Operation_List =>
         (rp_small_whetstone,
         due_activation,
         ocp_activation,
         check_due,
         alr_signal,
-        put_line));
-
-Operation (
-    Type => Composite,
-    Name => rp_job,
-    Composite_Operation_List =>
-        (rp_operation,
-        rp_cancel_deadline));
+        put_line, 
+        rp_cancel_deadline, 
+        delay_until ));

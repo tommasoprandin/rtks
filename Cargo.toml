@@ -4,9 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
+
 default = []
-board = ["defmt-rtt"]
-qemu = ["defmt-semihosting"]
+
+profiling-activation_log_reader = []
+profiling-external_event_server = []
+profiling-on_call_producer = []
+profiling-regular_producer = []
+
+semihosting = ["defmt-semihosting"]
+rtt = ["defmt-rtt"]
 
 [dependencies]
 cortex-m = { version = "0.7.7", features = [
@@ -32,3 +39,4 @@ stm32f4xx-hal = { git = "https://github.com/tommasoprandin/stm32f4xx-hal", branc
   "defmt",
 ] }
 heapless = "0.8.0"
+critical-section = "1.2.0"

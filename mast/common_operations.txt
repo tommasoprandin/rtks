@@ -1,4 +1,14 @@
 Operation (
     Type => Simple,
     Name => put_line,
-    Worst_Case_Execution_Time => 2.000E-06);
+    Worst_Case_Execution_Time => 8.017E-06);
+
+Operation (
+    Type => Simple,
+    Name => signal_wait,
+    Worst_Case_Execution_Time => 1.000E-06);
+
+Operation (
+    Type => Simple,
+    Name => delay_until,
+    Worst_Case_Execution_Time => 1.000E-06);

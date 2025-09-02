@@ -1,6 +1,6 @@
 Transaction (
     Type => regular,
-    Name => ocp_transaction,
+    Name => alr_transaction,
     External_Events =>
         ( ( Type => Sporadic,
         Name => alr_activation,
@@ -11,10 +11,10 @@ Transaction (
         Timing_Requirements =>
         ( Type => Hard_Global_Deadline,
             Deadline => 1.000000,
-            Referenced_Event => ocp_activation))),
+            Referenced_Event => alr_activation))),
     Event_Handlers =>
     ( (Type => Activity,
-    Input_Event => alr_activation,
-    Output_Event => alro1,
-    Activity_Operation => alr_job,
-    Activity_Server => on_call_producer)));
+        Input_Event => alr_activation,
+        Output_Event => alro1,
+        Activity_Operation => alr_job,
+        Activity_Server => activation_log_reader)));

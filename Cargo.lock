@@ -701,6 +701,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "cortex-m-semihosting",
+ "critical-section",
  "defmt 1.0.1",
  "defmt-rtt",
  "defmt-semihosting",
