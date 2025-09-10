@@ -11,6 +11,7 @@ profiling-activation_log_reader = []
 profiling-external_event_server = []
 profiling-on_call_producer = []
 profiling-regular_producer = []
+profiling-systick = []
 
 semihosting = ["defmt-semihosting"]
 rtt = ["defmt-rtt"]
@@ -40,3 +41,7 @@ stm32f4xx-hal = { git = "https://github.com/tommasoprandin/stm32f4xx-hal", branc
 ] }
 heapless = "0.8.0"
 critical-section = "1.2.0"
+profiled-rtic-monotonics = { git = "https://github.com/GianlucaBresolin/Profiling-RTIC.git", package = "profiled-rtic-monotonics", features = [
+  "cortex-m-systick",
+  "rtt",
+] }

@@ -56,11 +56,15 @@ mod app {
         },
         time::{Instant, Mono},
     };
+    #[cfg(feature = "profiling-systick")]
+    use crate::time::{set_dwt_ref, set_hclk_mhz};
+
     #[cfg(any(
         feature = "profiling-activation_log_reader",
         feature = "profiling-external_event_server",
         feature = "profiling-on_call_producer",
         feature = "profiling-regular_producer",
+        feature = "profiling-systick",
     ))]
     use core::mem::MaybeUninit;
     use rtic_monotonics::{fugit::RateExtU32 as _, systick::prelude::*};
@@ -72,6 +76,8 @@ mod app {
         feature = "profiling-regular_producer",
     ))]
     use stm32f4xx_hal::dwt::{Dwt, DwtExt};
+    #[cfg(feature = "profiling-systick")]
+    use cortex_m::peripheral::DWT;
 
     use stm32f4xx_hal::{interrupt, pac::NVIC, rcc::RccExt};
 
@@ -115,9 +121,11 @@ mod app {
             feature = "profiling-activation_log_reader",
             feature = "profiling-external_event_server",
             feature = "profiling-on_call_producer",
-            feature = "profiling-regular_producer",
+            feature = "profiling-regular_producer"
         ))]
         dwt_storage: MaybeUninit<Dwt> = MaybeUninit::uninit(),
+        #[cfg(feature = "profiling-systick")]
+        dwt_storage_systick: MaybeUninit<DWT> = MaybeUninit::uninit(),
         #[cfg(feature = "profiling-activation_log_reader")]
         activation_log_reader_times: [u32; 9] = [0; 9],
         #[cfg(feature = "profiling-external_event_server")]
@@ -132,7 +140,8 @@ mod app {
 
         // Extract device from context
         let peripherals = cx.device;
-        let core = cx.core;
+        #[allow(unused_mut)]
+        let mut core = cx.core;
 
         // Clocks setup
         let rcc = peripherals.RCC.constrain();
@@ -147,13 +156,27 @@ mod app {
             feature = "profiling-external_event_server",
             feature = "profiling-activation_log_reader",
             feature = "profiling-on_call_producer",
-            feature = "profiling-regular_producer",
+            feature = "profiling-regular_producer"
         ))]
         let dwt = unsafe {
             let dwt = core.DWT.constrain(core.DCB, &clocks);
             cx.local.dwt_storage.write(dwt);
             cx.local.dwt_storage.assume_init_ref()
         };
+        
+        #[cfg(feature = "profiling-systick")]
+        {
+            let dwt_ref: &'static DWT = 
+            unsafe { 
+                core.DCB.enable_trace();
+                core.DWT.enable_cycle_counter();
+                cx.local.dwt_storage_systick.write(core.DWT);
+                cx.local.dwt_storage_systick.assume_init_ref()
+            };
+
+            set_hclk_mhz(clocks.hclk().to_MHz() as f32);
+            set_dwt_ref(dwt_ref);
+        }
 
         // Setup monotonic timer
         Mono::start(core.SYST, clocks.sysclk().to_Hz());

@@ -546,6 +546,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "profiled-rtic-monotonics"
+version = "2.1.0"
+source = "git+https://github.com/GianlucaBresolin/Profiling-RTIC.git#e6df0933da459c9efc46e921da1d6ab3f5fb52af"
+dependencies = [
+ "cfg-if",
+ "cortex-m",
+ "cortex-m-semihosting",
+ "defmt 1.0.1",
+ "defmt-rtt",
+ "fugit",
+ "portable-atomic",
+ "rtic-time",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -707,6 +722,7 @@ dependencies = [
  "defmt-semihosting",
  "heapless",
  "libm",
+ "profiled-rtic-monotonics",
  "rtic",
  "rtic-monotonics",
  "rtic-sync",
