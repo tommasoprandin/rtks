@@ -510,6 +510,8 @@ pub mod regular_producer {
                 worst case ocp_activation = {}
                 worst case check_due = {}
                 worst case alr_signal = {}
+                worst case cancel_deadline = {}
+                worst case rp_cancel_deadline = {}
             ",
                 self.wc_rp_smallwhetstone_time,
                 self.wc_due_activation_time,
@@ -517,6 +519,8 @@ pub mod regular_producer {
                 self.wc_ocp_activation_time,
                 self.wc_check_due_time,
                 self.wc_alr_signal_time,
+                self.wc_cancel_deadline,
+                self.wc_rp_cancel_deadline
             );
         }
     }
