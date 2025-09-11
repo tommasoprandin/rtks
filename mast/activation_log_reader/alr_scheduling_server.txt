@@ -3,6 +3,6 @@ Scheduling_Server (
     Name => activation_log_reader,
     Server_Sched_Parameters =>
         ( Type => Fixed_Priority_Policy,
-        The_Priority => 3,
+        The_Priority => 5,
         Preassigned => YES),
     Scheduler => fps);

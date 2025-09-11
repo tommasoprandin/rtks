@@ -3,6 +3,6 @@ Scheduling_Server (
     Name => on_call_producer,
     Server_Sched_Parameters =>
         ( Type => Fixed_Priority_Policy,
-        The_Priority => 5,
+        The_Priority => 3,
         Preassigned => YES),
     Scheduler => fps);

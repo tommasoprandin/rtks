@@ -6,9 +6,9 @@ Operation (
 Operation (
     Type => Simple,
     Name => signal_wait,
-    Worst_Case_Execution_Time => 1.000E-06);
+    Worst_Case_Execution_Time => 4.160E-06);
 
 Operation (
     Type => Simple,
     Name => delay_until,
-    Worst_Case_Execution_Time => 1.000E-06);
+    Worst_Case_Execution_Time => 0.865E-06);

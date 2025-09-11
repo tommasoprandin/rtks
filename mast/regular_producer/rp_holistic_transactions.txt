@@ -1,0 +1,45 @@
+Transaction (
+	Type => regular,
+	Name => rp_transaction,
+	External_Events =>
+		( ( Type => Periodic,
+				Name => e1,
+				Period => 1.000,
+				Max_Jitter => 0.000,
+				Phase => 0.000)),
+	Internal_Events =>
+		( ( Type => Regular,
+				Name => rpo1,
+				Timing_Requirements =>
+					( Type => Hard_Global_Deadline,
+						Deadline => 0.500000,
+						Referenced_Event => e1))),
+	Event_Handlers =>
+		( (Type => System_Timed_Activity,
+			Input_Event => e1,
+			Output_Event => rpo1,
+			Activity_Operation => rp_job, 
+			Activity_Server => regular_producer))); 
+
+Transaction (
+    Type => regular,
+    Name => rp_w_transaction,
+    External_Events =>
+		( ( Type => Periodic,
+            Name => rp_w_activation,
+            Period => 1.000,
+            Max_Jitter => 0.000,
+            Phase => 0.000)),
+    Internal_Events =>
+        ( (Type => Regular,
+            Name => rp_w_o1,
+            Timing_Requirements =>
+                ( Type => Hard_Global_Deadline,
+                    Deadline => 1.000000,
+                    Referenced_Event => rp_w_activation))),
+    Event_Handlers =>
+    ( (Type => Activity,
+        Input_Event => rp_w_activation,
+        Output_Event => rp_w_o1,
+        Activity_Operation => rp_watchdog_job,
+        Activity_Server => rp_watchdog)));

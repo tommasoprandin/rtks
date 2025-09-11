@@ -7,7 +7,7 @@ Shared_Resource (
 Operation (
     Type => Simple,
     Name => rp_cancel_deadline_simple, 
-    Worst_Case_Execution_Time => 1.000E-06,
+    Worst_Case_Execution_Time => 0.273E-06,
     Shared_Resources_To_Lock =>
 		( rp_dpo ),
 	Shared_Resources_To_Unlock =>
@@ -16,7 +16,7 @@ Operation (
 Operation ( 
     Type => Enclosing,
     Name => rp_cancel_deadline,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 8.314E-06,
     Composite_Operation_List =>
         ( rp_cancel_deadline_simple ));
 
@@ -32,7 +32,7 @@ Scheduling_Server (
 Operation (
     Type => Simple,
     Name => rp_deadline_miss_detected_simple, 
-    Worst_Case_Execution_Time => 1.000E-06,
+    Worst_Case_Execution_Time => 0.450E-06,
     Shared_Resources_To_Lock =>
 		( rp_dpo ),
 	Shared_Resources_To_Unlock =>
@@ -41,9 +41,9 @@ Operation (
 Operation ( 
     Type => Enclosing,
     Name => rp_deadline_miss_detected,
-    Worst_Case_Execution_Time => 2.000E-06,
+    Worst_Case_Execution_Time => 3.040E-06,
     Composite_Operation_List =>
-        ( rp_cancel_deadline_simple ));
+        ( rp_deadline_miss_detected_simple ));
 
 Operation (
     Type => Composite,
@@ -52,25 +52,3 @@ Operation (
         ( delay_until,
         rp_deadline_miss_detected ));
 
-Transaction (
-    Type => regular,
-    Name => rp_w_transaction,
-    External_Events =>
-		( ( Type => Periodic,
-            Name => rp_w_activation,
-            Period => 1.000,
-            Max_Jitter => 0.000,
-            Phase => 0.000)),
-    Internal_Events =>
-        ( (Type => Regular,
-            Name => rp_w_o1,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
-                    Referenced_Event => rp_w_activation))),
-    Event_Handlers =>
-    ( (Type => Activity,
-        Input_Event => rp_w_activation,
-        Output_Event => rp_w_o1,
-        Activity_Operation => rp_watchdog_job,
-        Activity_Server => rp_watchdog)));

@@ -1,7 +1,7 @@
 Operation (
     Type => Simple,
     Name => wait_semaphore,
-    Worst_Case_Execution_Time => 0.6470E-06);
+    Worst_Case_Execution_Time => 4.178E-06);
 
 -- 139: 0.004346391 x20: 0.086927882 x1.86: 0.1616857452
 Operation (
