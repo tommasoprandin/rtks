@@ -30,6 +30,8 @@
 %%
 %% Additional packages required for this document
 \usepackage{lipsum} % For generating dummy text
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, matrix}
 
 %% Rights management information.  This information is sent to you
 %% when you complete the rights form.  These commands have SAMPLE
@@ -216,19 +218,19 @@ execution times and the detection of deadline misses, respectively. Section 6 pr
 \textit{MAST} tool and its analysis capabilities. In Section 7, we present the \textit{Fixed-Priority Scheduling
 (FPS)} analysis of the system. Finally, Section 8 concludes the paper reporting the main findings. 
 
-\section{System Model}
+\input{sections/system-model.tex}
 
-\section{RTIC}
+\input{sections/rtic.tex}
 
-\section{Execution Times}
+\input{sections/execution-times.tex}
 
-\section{Deadeline Miss Detection}
+\input{sections/deadline-miss-detection.tex}
 
-\section{MAST}
+\input{sections/mast.tex}
 
-\section{FPS Analysis}
+\input{sections/fps-analysis.tex}
 
-\section{Conclusions}
+\input{sections/conclusions.tex}
 
 \section{Citations and Bibliographies}
 \bibliographystyle{ACM-Reference-Format}
