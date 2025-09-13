@@ -300,7 +300,7 @@ mod app {
         )
     }
 
-    #[task(priority = 5, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
+    #[task(priority = 3, local=[activation_log_reader_locals], shared=[activation_log, activation_log_reader_deadline_protected_object])]
     async fn activation_log_reader(cx: activation_log_reader::Context) -> ! {
         tasks::activation_log_reader::activation_log_reader(
             cx.local.activation_log_reader_locals,
@@ -324,7 +324,7 @@ mod app {
         .await;
     }
 
-    #[task(priority = 3, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
+    #[task(priority = 5, local = [on_call_producer_locals], shared = [request_buffer, on_call_producer_deadline_protected_object])]
     async fn on_call_producer(cx: on_call_producer::Context) {
         tasks::on_call_producer_task::on_call_producer_task(
             cx.local.on_call_producer_locals,

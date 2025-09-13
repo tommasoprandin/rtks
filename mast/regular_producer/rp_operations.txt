@@ -2,29 +2,39 @@
 Operation (
     Type => Simple,
     Name => rp_small_whetstone,
-    Worst_Case_Execution_Time => 0.47278728);
+    Worst_Case_Execution_Time => 0.47278728,
+    Avg_Case_Execution_Time => 0.47263928,
+    Best_Case_Execution_Time => 0.47249128);
 
 Operation (
     Type => Simple,
     Name => due_activation,
-    Worst_Case_Execution_Time => 0.214E-06);
+    Worst_Case_Execution_Time => 0.214E-06,
+    Avg_Case_Execution_Time => 0.214E-06,
+    Best_Case_Execution_Time => 0.214E-06);
 
 Operation ( 
     Type => Enclosing,
     Name => ocp_activation,
     Worst_Case_Execution_Time => 2.903E-06,
+    Avg_Case_Execution_Time => 2.903E-06,
+    Best_Case_Execution_Time => 2.903E-06,
     Composite_Operation_List =>
         ( rb_deposit ));
 
 Operation (
     Type => Simple,
     Name => check_due,
-    Worst_Case_Execution_Time => 0.208E-06);
+    Worst_Case_Execution_Time => 0.208E-06,
+    Avg_Case_Execution_Time => 0.208E-06,
+    Best_Case_Execution_Time => 0.208E-06);
 
 Operation (
     Type => Simple,
     Name => alr_signal,
-    Worst_Case_Execution_Time => 1.982E-06);
+    Worst_Case_Execution_Time => 1.982E-06,
+    Avg_Case_Execution_Time => 1.982E-06,
+    Best_Case_Execution_Time => 1.982E-06);
 
 Operation (
     Type => Composite,

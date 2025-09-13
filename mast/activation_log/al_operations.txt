@@ -2,6 +2,8 @@ Operation (
 	Type => Simple,
 	Name => al_write,
 	Worst_Case_Execution_Time => 0.583E-06,
+	Avg_Case_Execution_Time => 0.583E-06,
+	Best_Case_Execution_Time => 0.583E-06,
 	Shared_Resources_To_Lock =>
 		( activation_log),
 	Shared_Resources_To_Unlock =>
@@ -11,6 +13,8 @@ Operation (
 	Type => Simple,
 	Name => al_read,
 	Worst_Case_Execution_Time => 0.136E-06,
+	Avg_Case_Execution_Time => 0.136E-06,
+	Best_Case_Execution_Time => 0.136E-06,
 	Shared_Resources_To_Lock =>
 		( activation_log),
 	Shared_Resources_To_Unlock =>

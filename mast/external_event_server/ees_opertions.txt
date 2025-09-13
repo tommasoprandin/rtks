@@ -1,12 +1,16 @@
 Operation (
     Type => Simple,
     Name => event_queue_wait, 
-    Worst_Case_Execution_Time => 4.101E-06 );
+    Worst_Case_Execution_Time => 4.101E-06,
+    Avg_Case_Execution_Time => 4.101E-06,
+    Best_Case_Execution_Time => 4.101E-06);
 
 Operation (
     Type => Enclosing,
     Name => ees_write,
     Worst_Case_Execution_Time => 1.071E-06,
+    Avg_Case_Execution_Time => 1.071E-06,
+    Best_Case_Execution_Time => 1.071E-06,
     Composite_Operation_List =>
         ( al_write ));
 

@@ -1,457 +1,107 @@
--- transaction instant 0
+-- dummy operation required by offset
+Operation (
+    Type => Simple,
+    Name => noop,
+    Worst_Case_Execution_Time => 0.000);
+
 Transaction (
-	Type => Regular,
-	Name => t1,
-	External_Events => (
-		( Type => Periodic,
+	Type => regular,
+	Name => rp_transaction,
+	External_Events =>
+		( ( Type => Periodic,
 				Name => e1,
-				Period => 15.000,
+				Period => 1.000,
 				Max_Jitter => 0.000,
-				Phase => 0.000)),
+				Phase => 0.000),
+        (Type => Periodic,
+                Name => ocp_request,
+                Period => 5.000,
+                Max_Jitter => 0.000,
+                Phase => 2.000),
+        (Type => Periodic,
+                Name => ocp_request,
+                Period => 3.000,
+                Max_Jitter => 0.000,
+                Phase => 3.000)),
 	Internal_Events => (
 		( Type => Regular,
 				Name => rpo1,
 				Timing_Requirements =>
 					( Type => Hard_Global_Deadline,
 						Deadline => 0.500000,
-						Referenced_Event => e1))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e1,
-			Output_Event => rpo1,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 1
-Transaction (
-	Type => Regular,
-	Name => t2,
-	External_Events => (
-		( Type => Periodic,
-				Name => e2,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 1.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo2,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e2)),
+						Referenced_Event => e1)),
         ( Type => Regular,
             Name => ocpo1,
             Timing_Requirements =>
                 ( Type => Hard_Global_Deadline,
                 Deadline => 0.800000,
-                Referenced_Event => ocpo1)),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e2,
-			Output_Event => rpo2,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer)),
-        ( Type               => System_Timed_Activity,
-            Input_Event        => rpo2,
-            Output_Event       => ocpo1,
-            Activity_Operation => ocp_job,
-            Activity_Server    => on_call_producer ))); 
-
--- transaction instant 2
-Transaction (
-	Type => Regular,
-	Name => t3,
-	External_Events => (
-		( Type => Periodic,
-				Name => e3,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 2.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo3,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e3)),
+                Referenced_Event => ocp_activation)),
         ( Type => Regular,
             Name => alro1,
             Timing_Requirements =>
                 ( Type => Hard_Global_Deadline,
                     Deadline => 1.000000,
-                    Referenced_Event => rpo3))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e3,
-			Output_Event => rpo3,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer),
-        ( Type               => System_Timed_Activity,
-            Input_Event        => rpo3,
-            Output_Event       => alro1,
-            Activity_Operation => alr_job,
-            Activity_Server    => activation_log_reader ))); 
-
--- transaction instant 3
-Transaction (
-	Type => Regular,
-	Name => t4,
-	External_Events => (
-		( Type => Periodic,
-				Name => e4,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 3.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo4,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e4))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e4,
-			Output_Event => rpo4,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 4
-Transaction (
-	Type => Regular,
-	Name => t5,
-	External_Events => (
-		( Type => Periodic,
-				Name => e5,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 4.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo5,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e5))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e5,
-			Output_Event => rpo5,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 5
-Transaction (
-	Type => Regular,
-	Name => t6,
-	External_Events => (
-		( Type => Periodic,
-				Name => e6,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 5.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo6,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e6)),
-        ( Type => Regular,
-            Name => alro2,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
-                    Referenced_Event => rpo6))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e6,
-			Output_Event => rpo6,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer),
-        ( Type               => System_Timed_Activity,
-            Input_Event        => rpo6,
-            Output_Event       => alro2,
-            Activity_Operation => alr_job,
-            Activity_Server    => activation_log_reader ))); 
-
--- transaction instant 6
-Transaction (
-	Type => Regular,
-	Name => t7,
-	External_Events => (
-		( Type => Periodic,
-				Name => e7,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 6.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo7,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e7)),
-        ( Type => Regular,
-            Name => ocpo2,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                Deadline => 0.800000,
-                Referenced_Event => ocpo2)),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e7,
-			Output_Event => rpo7,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer)),
-        ( Type               => System_Timed_Activity,
-            Input_Event        => rpo7,
-            Output_Event       => ocpo2,
-            Activity_Operation => ocp_job,
-            Activity_Server    => on_call_producer ))); 
-
--- transaction instant 7
-Transaction (
-	Type => Regular,
-	Name => t8,
-	External_Events => (
-		( Type => Periodic,
-				Name => e8,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 7.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo8,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e8))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e8,
-			Output_Event => rpo8,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 8
-Transaction (
-	Type => Regular,
-	Name => t9,
-	External_Events => (
-		( Type => Periodic,
-				Name => e9,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 8.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo9,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e9)),
-        ( Type => Regular,
-            Name => alro3,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
-                    Referenced_Event => rpo9))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e9,
-			Output_Event => rpo9,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer),
-        ( Type               => System_Timed_Activity,
-            Input_Event        => rpo9,
-            Output_Event       => alro3,
-            Activity_Operation => alr_job,
-            Activity_Server    => activation_log_reader ))); 
-
--- transaction instant 9
-Transaction (
-	Type => Regular,
-	Name => t10,
-	External_Events => (
-		( Type => Periodic,
-				Name => e10,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 9.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo10,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e10))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e10,
-			Output_Event => rpo10,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 10
-Transaction (
-	Type => Regular,
-	Name => t11,
-	External_Events => (
-		( Type => Periodic,
-				Name => e11,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 10.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo11,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e11))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e11,
-			Output_Event => rpo11,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
---transaction instant 11
-Transaction (
-	Type => Regular,
-	Name => t12,
-	External_Events => (
-		( Type => Periodic,
-				Name => e12,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 11.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo12,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e12)),
-        ( Type => Regular,
-            Name => alro4,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
                     Referenced_Event => alr_activation)),
-        ( Type => Regular,
-            Name => ocpo3,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
-                    Referenced_Event => alr_activation)),
-        ( Type => Regular,
-            Name => alr_activation),
-        ( Type => Regular,
-            Name => ocp_activation)),
+
+        ( Type => Regular, 
+            Name => rp_ocp),
+        ( Type => Regular, 
+            Name => rp_alr), 
 	Event_Handlers => (
 		(Type => System_Timed_Activity,
-			Input_Event => e12,
-			Output_Event => rpo12,
+			Input_Event => e1,
+			Output_Event => rpo1,
 			Activity_Operation => rp_job, 
 			Activity_Server => regular_producer),
-        ( Type => Multicast, 
-            Input_Events_List => rpo12,
-            Output_Events_List => (
-                alr_activation,
-                ocp_activation,
+
+        (Type => Multicast,
+			Input_Event => rpo1,
+			Output_Events_List => (
+                rp_ocp,
+                rp_alr)),
+
+        (Type => Barrier, 
+            Output_Event => ocp_activation,
+            Input_Events_List => (
+                ocp_request,
+                rp_ocp,
             )),
         ( Type               => System_Timed_Activity,
-            Input_Event        => alr_activation,
-            Output_Event       => alro4,
-            Activity_Operation => alr_job,
-            Activity_Server    => activation_log_reader ), 
-        ( Type => System_Timed_Activity,
-            Input_Event => ocp_activation,
-            Output_Event => ocpo3,
+            Input_Event        => ocp_activation,
+            Output_Event       => ocpo1,
             Activity_Operation => ocp_job,
-            Activity_Server => on_call_producer)));
+            Activity_Server    => on_call_producer ),
 
--- transaction instant 12
-Transaction (
-	Type => Regular,
-	Name => t13,
-	External_Events => (
-		( Type => Periodic,
-				Name => e13,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 12.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo13,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e13))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e13,
-			Output_Event => rpo13,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 13
-Transaction (
-	Type => Regular,
-	Name => t14,
-	External_Events => (
-		( Type => Periodic,
-				Name => e14,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 13.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo14,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e14))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e14,
-			Output_Event => rpo14,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
--- transaction instant 14
-Transaction (
-	Type => Regular,
-	Name => t15,
-	External_Events => (
-		( Type => Periodic,
-				Name => e15,
-				Period => 15.000,
-				Max_Jitter => 0.000,
-				Phase => 14.000)),
-	Internal_Events => (
-		( Type => Regular,
-				Name => rpo15,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e15)),
-        ( Type => Regular,
-            Name => alro5,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
-                    Referenced_Event => rpo15))),
-	Event_Handlers => (
-		(Type => System_Timed_Activity,
-			Input_Event => e15,
-			Output_Event => rpo15,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer),
-        ( Type               => System_Timed_Activity,
-            Input_Event        => rpo15,
-            Output_Event       => alro5,
+        (Type => Barrier, 
+            Output_Event => alr_activation,
+            Input_Events_List => (
+                alr_request,
+                rp_alr,
+            )),
+        ( Type => System_Timed_Activity,
+            Input_Event        => alr_activation,
+            Output_Event       => alro1,
             Activity_Operation => alr_job,
-            Activity_Server    => activation_log_reader ))); 
+            Activity_Server    => activation_log_reader )
+        )); 
+
+Transaction (
+	Type => regular,
+	Name => ees_transaction,
+	External_Events =>
+        ( ( Type => Sporadic,
+        Name => button_click,
+        Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => eeso1,
+        Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+            Deadline => 0.100000,
+            Referenced_Event => button_click))),
+    Event_Handlers => (
+        (Type => Activity,
+        Input_Event => button_click,
+        Output_Event => eeso1,
+        Activity_Operation => ees_job,
+        Activity_Server => external_event_server)));

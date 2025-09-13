@@ -1,54 +1,62 @@
-Shared_Resource (
-	Type => Immediate_Ceiling_Resource,
-	Name => rp_dpo,
-	Ceiling => 241,
-	Preassigned => YES);
+Shared_Resource(
+    Type => Immediate_Ceiling_Resource,
+    Name => rp_dpo,
+    Ceiling => 241,
+    Preassigned => YES);
 
-Operation (
+Operation(
     Type => Simple,
-    Name => rp_cancel_deadline_simple, 
+    Name => rp_cancel_deadline_simple,
     Worst_Case_Execution_Time => 0.273E-06,
+    Avg_Case_Execution_Time => 0.273E-06,
+    Best_Case_Execution_Time => 0.273E-06,
     Shared_Resources_To_Lock =>
-		( rp_dpo ),
-	Shared_Resources_To_Unlock =>
-		( rp_dpo ));
+        (rp_dpo),
+    Shared_Resources_To_Unlock =>
+        (rp_dpo));
 
-Operation ( 
+Operation(
     Type => Enclosing,
     Name => rp_cancel_deadline,
     Worst_Case_Execution_Time => 8.314E-06,
+    Avg_Case_Execution_Time => 8.314E-06,
+    Best_Case_Execution_Time => 8.314E-06,
     Composite_Operation_List =>
-        ( rp_cancel_deadline_simple ));
+        (rp_cancel_deadline_simple));
 
-Scheduling_Server (
+Scheduling_Server(
     Type => Regular,
     Name => rp_watchdog,
     Server_Sched_Parameters =>
-        ( Type => Fixed_Priority_Policy,
+    (Type => Fixed_Priority_Policy,
         The_Priority => 241,
         Preassigned => YES),
     Scheduler => fps);
 
-Operation (
+Operation(
     Type => Simple,
-    Name => rp_deadline_miss_detected_simple, 
+    Name => rp_deadline_miss_detected_simple,
     Worst_Case_Execution_Time => 0.450E-06,
+    Avg_Case_Execution_Time => 0.450E-06,
+    Best_Case_Execution_Time => 0.450E-06,
     Shared_Resources_To_Lock =>
-		( rp_dpo ),
-	Shared_Resources_To_Unlock =>
-		( rp_dpo ));
+        (rp_dpo),
+    Shared_Resources_To_Unlock =>
+        (rp_dpo));
 
-Operation ( 
+Operation(
     Type => Enclosing,
     Name => rp_deadline_miss_detected,
     Worst_Case_Execution_Time => 3.040E-06,
+    Avg_Case_Execution_Time => 3.040E-06,
+    Best_Case_Execution_Time => 3.040E-06,
     Composite_Operation_List =>
-        ( rp_deadline_miss_detected_simple ));
+        (rp_deadline_miss_detected_simple));
 
-Operation (
+Operation(
     Type => Composite,
     Name => rp_watchdog_job,
     Composite_Operation_List =>
-        ( delay_until,
-        rp_deadline_miss_detected ));
+    (delay_until,
+        rp_deadline_miss_detected));
 

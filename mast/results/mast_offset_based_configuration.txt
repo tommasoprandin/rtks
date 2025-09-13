@@ -132,48 +132,6 @@ Scheduling_Server (
         Preassigned => YES),
     Scheduler => fps);
 
-Transaction (
-	Type => regular,
-	Name => ocp_transaction,
-	External_Events =>
-        ( ( Type => Sporadic,
-        Name => ocp_activation,
-        Min_Interarrival => 5.000)),
-    Internal_Events =>
-        ( ( Type => Regular,
-        Name => ocpo1,
-        Timing_Requirements =>
-            ( Type => Hard_Global_Deadline,
-            Deadline => 0.800000,
-            Referenced_Event => ocp_activation))),
-    Event_Handlers =>
-        ( (Type => Activity,
-        Input_Event => ocp_activation,
-        Output_Event => ocpo1,
-        Activity_Operation => ocp_job,
-        Activity_Server => on_call_producer)));
-
-Transaction (
-    Type => regular,
-    Name => ocp_w_transaction,
-    External_Events =>
-        ( ( Type => Sporadic,
-            Name => ocp_w_activation,
-            Min_Interarrival => 5.000)),
-    Internal_Events =>
-        ( (Type => Regular,
-            Name => ocp_w_o1,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 5.000000,
-                    Referenced_Event => ocp_w_activation))),
-    Event_Handlers =>
-    ( (Type => Activity,
-        Input_Event => ocp_w_activation,
-        Output_Event => ocp_w_o1,
-        Activity_Operation => ocp_watchdog_job,
-        Activity_Server => ocp_watchdog)));
-
 Shared_Resource(
     Type => Immediate_Ceiling_Resource,
     Name => ocp_dpo,
@@ -238,6 +196,115 @@ Operation(
         ocp_deadline_miss_detected));
 
 
+-- dummy operation required by offset
+Operation (
+    Type => Simple,
+    Name => noop,
+    Worst_Case_Execution_Time => 0.000);
+
+Transaction (
+	Type => regular,
+	Name => rp_transaction,
+	External_Events =>
+		( ( Type => Periodic,
+				Name => e1,
+				Period => 1.000,
+				Max_Jitter => 0.000,
+				Phase => 0.000),
+        (Type => Periodic,
+                Name => ocp_request,
+                Period => 5.000,
+                Max_Jitter => 0.000,
+                Phase => 2.000),
+        (Type => Periodic,
+                Name => alr_request,
+                Period => 3.000,
+                Max_Jitter => 0.000,
+                Phase => 3.000)),
+	Internal_Events => (
+		( Type => Regular,
+				Name => rpo1,
+				Timing_Requirements =>
+					( Type => Hard_Global_Deadline,
+						Deadline => 0.500000,
+						Referenced_Event => e1)),
+        ( Type => Regular,
+            Name => ocpo1,
+            Timing_Requirements =>
+                ( Type => Hard_Global_Deadline,
+                Deadline => 0.800000,
+                Referenced_Event => ocp_activation)),
+        ( Type => Regular,
+            Name => alro1,
+            Timing_Requirements =>
+                ( Type => Hard_Global_Deadline,
+                    Deadline => 1.000000,
+                    Referenced_Event => alr_activation)),
+
+        ( Type => Regular, 
+            Name => rp_ocp),
+        ( Type => Regular, 
+            Name => rp_alr), 
+	Event_Handlers => (
+		(Type => System_Timed_Activity,
+			Input_Event => e1,
+			Output_Event => rpo1,
+			Activity_Operation => rp_job, 
+			Activity_Server => regular_producer),
+
+        (Type => Multicast,
+			Input_Event => rpo1,
+			Output_Events_List => (
+                rp_ocp,
+                rp_alr)),
+
+        (Type => Barrier, 
+            Output_Event => ocp_activation,
+            Input_Events_List => (
+                ocp_request,
+                rp_ocp,
+            )),
+        ( Type               => System_Timed_Activity,
+            Input_Event        => ocp_activation,
+            Output_Event       => ocpo1,
+            Activity_Operation => ocp_job,
+            Activity_Server    => on_call_producer ),
+
+        (Type => Barrier, 
+            Output_Event => alr_activation,
+            Input_Events_List => (
+                alr_request,
+                rp_alr,
+            )),
+        ( Type => System_Timed_Activity,
+            Input_Event        => alr_activation,
+            Output_Event       => alro1,
+            Activity_Operation => alr_job,
+            Activity_Server    => activation_log_reader )
+        )); 
+
+Transaction (
+	Type => regular,
+	Name => ees_transaction,
+	External_Events =>
+        ( ( Type => Sporadic,
+        Name => button_click,
+        Min_Interarrival => 5.000)),
+    Internal_Events =>
+        ( ( Type => Regular,
+        Name => eeso1,
+        Timing_Requirements =>
+            ( Type => Hard_Global_Deadline,
+            Deadline => 0.100000,
+            Referenced_Event => button_click))),
+    Event_Handlers => (
+        (Type => Activity,
+        Input_Event => button_click,
+        Output_Event => eeso1,
+        Activity_Operation => ees_job,
+        Activity_Server => external_event_server)));
+
+
 Operation(
     Type => Simple,
     Name => wait_semaphore,
@@ -271,48 +338,6 @@ Operation(
         alr_read,
         put_line,
         alr_cancel_deadline));
-
-Transaction (
-    Type => regular,
-    Name => alr_transaction,
-    External_Events =>
-        ( ( Type => Sporadic,
-        Name => alr_activation,
-        Min_Interarrival => 3.000)),
-    Internal_Events =>
-        ( ( Type => Regular,
-        Name => alro1,
-        Timing_Requirements =>
-        ( Type => Hard_Global_Deadline,
-            Deadline => 1.000000,
-            Referenced_Event => alr_activation))),
-    Event_Handlers =>
-    ( (Type => Activity,
-        Input_Event => alr_activation,
-        Output_Event => alro1,
-        Activity_Operation => alr_job,
-        Activity_Server => activation_log_reader)));
-
-Transaction (
-    Type => regular,
-    Name => alr_w_transaction,
-    External_Events =>
-        ( ( Type => Sporadic,
-            Name => alr_w_activation,
-            Min_Interarrival => 3.000)),
-    Internal_Events =>
-        ( ( Type => Regular,
-            Name => alr_w_o1,
-            Timing_Requirements =>
-            ( Type => Hard_Global_Deadline,
-                Deadline => 3.000000,
-                Referenced_Event => alr_w_activation))),
-    Event_Handlers =>
-    ( (Type => Activity,
-        Input_Event => alr_w_activation,
-        Output_Event => alr_w_o1,
-        Activity_Operation => alr_watchdog_job,
-        Activity_Server => alr_watchdog)));
 
 Shared_Resource(
     Type => Immediate_Ceiling_Resource,
@@ -448,52 +473,6 @@ Operation (
         delay_until ));
 
 
-Transaction (
-	Type => regular,
-	Name => rp_transaction,
-	External_Events =>
-		( ( Type => Periodic,
-				Name => e1,
-				Period => 1.000,
-				Max_Jitter => 0.000,
-				Phase => 0.000)),
-	Internal_Events =>
-		( ( Type => Regular,
-				Name => rpo1,
-				Timing_Requirements =>
-					( Type => Hard_Global_Deadline,
-						Deadline => 0.500000,
-						Referenced_Event => e1))),
-	Event_Handlers =>
-		( (Type => System_Timed_Activity,
-			Input_Event => e1,
-			Output_Event => rpo1,
-			Activity_Operation => rp_job, 
-			Activity_Server => regular_producer))); 
-
-Transaction (
-    Type => regular,
-    Name => rp_w_transaction,
-    External_Events =>
-		( ( Type => Periodic,
-            Name => rp_w_activation,
-            Period => 1.000,
-            Max_Jitter => 0.000,
-            Phase => 0.000)),
-    Internal_Events =>
-        ( (Type => Regular,
-            Name => rp_w_o1,
-            Timing_Requirements =>
-                ( Type => Hard_Global_Deadline,
-                    Deadline => 1.000000,
-                    Referenced_Event => rp_w_activation))),
-    Event_Handlers =>
-    ( (Type => Activity,
-        Input_Event => rp_w_activation,
-        Output_Event => rp_w_o1,
-        Activity_Operation => rp_watchdog_job,
-        Activity_Server => rp_watchdog)));
-
 Shared_Resource(
     Type => Immediate_Ceiling_Resource,
     Name => rp_dpo,
@@ -590,48 +569,6 @@ Scheduling_Server (
         The_Priority => 11,
         Preassigned => YES),
     Scheduler => fps);
-
-Transaction (
-	Type => regular,
-	Name => ees_transaction,
-	External_Events =>
-        ( ( Type => Sporadic,
-        Name => button_click,
-        Min_Interarrival => 5.000)),
-    Internal_Events =>
-        ( ( Type => Regular,
-        Name => eeso1,
-        Timing_Requirements =>
-            ( Type => Hard_Global_Deadline,
-            Deadline => 0.100000,
-            Referenced_Event => button_click))),
-    Event_Handlers =>
-        ( (Type => Activity,
-        Input_Event => button_click,
-        Output_Event => eeso1,
-        Activity_Operation => ees_job,
-        Activity_Server => external_event_server)));
-
-Transaction (
-    Type => regular,
-    Name => ees_w_transaction,
-    External_Events =>
-        ( ( Type => Sporadic,
-            Name => ees_w_activation,
-            Min_Interarrival => 5.000)),
-    Internal_Events =>
-        ( ( Type => Regular,
-            Name => ees_w_o1,
-            Timing_Requirements =>
-            ( Type => Hard_Global_Deadline,
-                Deadline => 5.000000,
-                Referenced_Event => ees_w_activation))),
-    Event_Handlers =>
-    ( (Type => Activity,
-        Input_Event => ees_w_activation,
-        Output_Event => ees_w_o1,
-        Activity_Operation => ees_watchdog_job,
-        Activity_Server => ees_watchdog)));
 
 Shared_Resource(
     Type => Immediate_Ceiling_Resource,

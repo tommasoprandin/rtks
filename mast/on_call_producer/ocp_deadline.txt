@@ -1,54 +1,62 @@
-Shared_Resource (
-	Type => Immediate_Ceiling_Resource,
-	Name => ocp_dpo,
-	Ceiling => 241,
-	Preassigned => YES);
+Shared_Resource(
+    Type => Immediate_Ceiling_Resource,
+    Name => ocp_dpo,
+    Ceiling => 241,
+    Preassigned => YES);
 
-Operation (
+Operation(
     Type => Simple,
-    Name => ocp_cancel_deadline_simple, 
+    Name => ocp_cancel_deadline_simple,
     Worst_Case_Execution_Time => 0.273E-06,
+    Avg_Case_Execution_Time => 0.273E-06,
+    Best_Case_Execution_Time => 0.273E-06,
     Shared_Resources_To_Lock =>
-		( ocp_dpo ),
-	Shared_Resources_To_Unlock =>
-		( ocp_dpo ));
+        (ocp_dpo),
+    Shared_Resources_To_Unlock =>
+        (ocp_dpo));
 
-Operation ( 
+Operation(
     Type => Enclosing,
     Name => ocp_cancel_deadline,
     Worst_Case_Execution_Time => 8.314E-06,
+    Avg_Case_Execution_Time => 8.314E-06,
+    Best_Case_Execution_Time => 8.314E-06,
     Composite_Operation_List =>
-        ( ocp_cancel_deadline_simple ));
+        (ocp_cancel_deadline_simple));
 
-Scheduling_Server (
+Scheduling_Server(
     Type => Regular,
     Name => ocp_watchdog,
     Server_Sched_Parameters =>
-        ( Type => Fixed_Priority_Policy,
+    (Type => Fixed_Priority_Policy,
         The_Priority => 241,
         Preassigned => YES),
     Scheduler => fps);
 
-Operation (
+Operation(
     Type => Simple,
-    Name => ocp_deadline_miss_detected_simple, 
+    Name => ocp_deadline_miss_detected_simple,
     Worst_Case_Execution_Time => 0.450E-06,
+    Avg_Case_Execution_Time => 0.450E-06,
+    Best_Case_Execution_Time => 0.450E-06,
     Shared_Resources_To_Lock =>
-		( ocp_dpo ),
-	Shared_Resources_To_Unlock =>
-		( ocp_dpo ));
+        (ocp_dpo),
+    Shared_Resources_To_Unlock =>
+        (ocp_dpo));
 
-Operation ( 
+Operation(
     Type => Enclosing,
     Name => ocp_deadline_miss_detected,
     Worst_Case_Execution_Time => 3.040E-06,
+    Avg_Case_Execution_Time => 3.040E-06,
+    Best_Case_Execution_Time => 3.040E-06,
     Composite_Operation_List =>
-        ( ocp_deadline_miss_detected_simple ));
+        (ocp_deadline_miss_detected_simple));
 
-Operation (
+Operation(
     Type => Composite,
     Name => ocp_watchdog_job,
     Composite_Operation_List =>
-        ( signal_wait,
+    (signal_wait,
         delay_until,
-        ocp_deadline_miss_detected ));
+        ocp_deadline_miss_detected));

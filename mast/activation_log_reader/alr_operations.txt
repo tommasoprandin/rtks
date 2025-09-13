@@ -1,27 +1,33 @@
-Operation (
+Operation(
     Type => Simple,
     Name => wait_semaphore,
-    Worst_Case_Execution_Time => 4.178E-06);
+    Worst_Case_Execution_Time => 4.178E-06,
+    Avg_Case_Execution_Time => 4.178E-06,
+    Best_Case_Execution_Time => 4.178E-06);
 
--- 139: 0.004346391 x20: 0.086927882 x1.86: 0.1616857452
-Operation (
+--139: 0.004346391; x20: 0.08692782; x1.8: 0.15647008; x1.35: 0.21123460
+Operation(
     Type => Simple,
     Name => alr_small_whetstone,
-    Worst_Case_Execution_Time => 0.1616857452);
+    Worst_Case_Execution_Time => 0.21123460,
+    Avg_Case_Execution_Time => 0.21123460,
+    Best_Case_Execution_Time => 0.21123460);
 
-Operation (
+Operation(
     Type => Enclosing,
     Name => alr_read,
     Worst_Case_Execution_Time => 0.647E-06,
+    Avg_Case_Execution_Time => 0.647E-06,
+    Best_Case_Execution_Time => 0.647E-06,
     Composite_Operation_List =>
-        ( al_read ));
+        (al_read));
 
-Operation (
+Operation(
     Type => Composite,
     Name => alr_job,
     Composite_Operation_List =>
-        ( wait_semaphore,
+    (wait_semaphore,
         alr_small_whetstone,
         alr_read,
-        put_line, 
-        alr_cancel_deadline ));
+        put_line,
+        alr_cancel_deadline));

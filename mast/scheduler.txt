@@ -4,6 +4,6 @@ Scheduler (
 	Host => cpu,
 	Policy =>
 		( Type => Fixed_Priority,
-		Worst_Context_Switch => 3.090E-06,
+		Worst_Context_Switch => 0.018E-06,
 		Max_Priority => 241,
 		Min_Priority => 1));

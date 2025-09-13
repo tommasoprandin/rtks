@@ -1,14 +1,20 @@
 Operation (
     Type => Simple,
     Name => put_line,
-    Worst_Case_Execution_Time => 8.017E-06);
+    Worst_Case_Execution_Time => 8.017E-06,
+    Avg_Case_Execution_Time => 8.017E-06,
+    Best_Case_Execution_Time => 8.017E-06);
 
 Operation (
     Type => Simple,
     Name => signal_wait,
-    Worst_Case_Execution_Time => 4.160E-06);
+    Worst_Case_Execution_Time => 4.160E-06,
+    Avg_Case_Execution_Time => 4.160E-06,
+    Best_Case_Execution_Time => 4.160E-06);
 
 Operation (
     Type => Simple,
     Name => delay_until,
-    Worst_Case_Execution_Time => 0.865E-06);
+    Worst_Case_Execution_Time => 0.865E-06,
+    Avg_Case_Execution_Time => 0.865E-06,
+    Best_Case_Execution_Time => 0.865E-06);

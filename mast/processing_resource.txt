@@ -4,6 +4,8 @@ Processing_Resource (
 	Max_Interrupt_Priority => 255,
 	Min_Interrupt_Priority => 241,
 	Worst_ISR_Switch => 2.578E-06,
+	Avg_ISR_Switch => 2.578E-06,
+	Best_ISR_Switch => 2.578E-06,
 	System_Timer =>
 		( Type => Ticker,
 		Worst_Overhead => 1.000E-06,
