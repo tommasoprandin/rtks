@@ -284,7 +284,7 @@ Transaction (
         Name => alro1,
         Timing_Requirements =>
         ( Type => Hard_Global_Deadline,
-            Deadline => 1.000000,
+            Deadline => 1.500000,
             Referenced_Event => alr_activation))),
     Event_Handlers =>
     ( (Type => Activity,
