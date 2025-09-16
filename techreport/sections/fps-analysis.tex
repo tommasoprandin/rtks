@@ -1,1 +1,278 @@
 \section{FPS Analysis}
+In this section we present our \textit{Fixed-Priority Scheduling (FPS)} analysis
+of the system. The analysis was performed by modeling the system through a
+\textit{MAST} model, which was then analyzed using the \textit{MAST} tool to verify
+the timing properties and to analyze the system under different workloads. \\
+The priority assignment was done according to the \textit{Deadline Monotonic} policy, which
+assigns higher priorities to tasks with shorter deadlines. This choice comes
+from the fact that tasks in the system do not have implicit deadlines and, as
+theory proves, \textit{Deadline Monotonic} performs better than \textit{Rate  
+Monotonic} in such cases, as it can provide feasible schedules where
+\textit{Rate Monotonic} fails. \\
+The evaluation of the system under different utilization levels was facilitated
+by the use of the \textit{Small Whetstone} algorithm to simulate computational workloads.
+Thanks to its configurable load and deterministic behaviour without involving
+the use of shared resources, it provides a straightforward way to test the
+system under differen utilizations by simply scaling the WCET in the different
+\texttt{small\_whetstone} operations that are present in the \textit{MAST}
+model, without the need for new execution-time measurements.  
+
+\subsection{Holistic Analysis}
+We first conducted an holistic analysis, considering all the tasks as
+intendepent. As a consequence, this analysis is pessimistic, since it does not
+take into account the relationships between tasks. System feasibility is
+therefore evaluated based on the worst-case scenario at the critical instant, i.e.,
+when all tasks are released simultaneously (not a realistic and possible case).
+The analysis was performed using the \textit{Classic RM Analysis} tool in
+\textit{MAST}, which implements the classic exact response-time analysis for
+single-processor systems under \textit{Fixed-Priority Scheduling} (although it's
+called \textit{Rate Monotonic}, it bases \textit{Deadline Monotonic} analysis). \\
+The first results of the analysis were made considering the system under the
+loads provided in the original \textit{Guided Extended Example}, i.e.,
+with the following Whetstone workloads (accompained by their corresponding WCETs
+expressed in seconds).
+\begin{table}[H]
+  \label{tab:holistic-analysis-ada}
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{Task} & \textbf{Workload} & \textbf{Rust WCET} & \textbf{Ada WCET} \\ 
+      \midrule
+      \texttt{Regular\_Producer}       & 756  & 0.023639364 & 0.00554170 \\
+      \texttt{On\_Call\_Producer}      & 278  & 0.008692782 & 0.00203782 \\
+      \texttt{Activation\_Log\_Reader} & 139  & 0.004346391 & 0.00101891 \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Whetstone Operations}
+\end{table}
+The obtained results are reported in Table [\ref{tab:holistic-analysis-rust}] and
+Table [\ref{tab:holistic-analysis-ada}]. Times are expressed in seconds and we
+omitted the watchdogs' transactions (which were instead included in the Rust
+model) since they are not relevant for identifying increasing workload factors.
+Regarding the jitter times, all transactions suffer jitter due to the system
+ticker interrupt and the context switch overhead. Moreover, additional sources 
+of jitter and blocking times for each transaction are the following:
+\begin{itemize}
+  \item \texttt{rp\_transaction}: suffers additional jitter due to the possible
+  interference of the \texttt{ees\_transaction}. Its blocking time is instead due
+  to the possible access to shared resources from the lower-priority
+  \texttt{ocp\_transaction} and \texttt{alr\_transaction} with ceiling
+  priority equal to the priority of \texttt{rp\_transaction};
+  \item \texttt{ocp\_transaction}: suffers additional jitter due to interference
+  by the higher-priority \texttt{rp\_transaction}. Its blocking time is caused
+  by the \texttt{alr\_transaction};
+  \item \texttt{alr\_transaction}: suffers additional jitter due to interference
+  by both the higher-priority \texttt{rp\_transaction} and
+  \texttt{ocp\_transaction}. It does not suffer blocking, since it represents
+  the lowest-priority task in the system;
+  \item \texttt{ees\_transaction}: it suffers no additional jitter than the
+  aforementioned overheads. Its blockig time is caused by the
+  \texttt{alr\_transaction} which can possibly access the shared
+  \texttt{Activation\_Log} resource with ceiling priority equal to the
+  priority of \texttt{ees\_transaction}.
+\end{itemize}
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.024728  & 2006.3\%     & 0.001066  & 3.030E-06 \\
+      \texttt{ocp\_transaction} & 0.033451  & 8791.0\%     & 0.024741  & 2.730E-06 \\
+      \texttt{alr\_transaction} & 0.037822  & 21927.3\%    & 0.033455  & 0.000     \\
+      \texttt{ees\_transaction} & 0.001043  & >=100000.0\% & 2.955E-05 & 2.730E-06 \\
+      \hline
+      \texttt{System Utilization} & 2.79\% & & & \\
+      \texttt{System Slack} & 1994.1\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Rust}
+  \label{tab:holistic-analysis-rust}
+\end{table}
+Based on these results, since the smallest slack available was 2006.3\% for the 
+\texttt{rp\_transaction}, we increased the workloads with a factor of 20 to
+reduce it significantly. New results are reported in Table
+[\ref{tab:holistic-analysis-rust-x20}]. 
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.474326  & 5.08\%       & 0.001516  & 3.030E-06 \\
+      \texttt{ocp\_transaction} & 0.648377  & 87.11\%      & 0.474643  & 2.730E-06 \\
+      \texttt{alr\_transaction} & 0.735413  & 303.91\%     & 0.787757  & 0.000     \\
+      \texttt{ees\_transaction} & 0.001043  & >=100000.0\% & 0.001030  & 2.730E-06 \\
+      \hline
+      \texttt{System Utilization} & 53.76\% & & & \\
+      \texttt{System Slack} & 5.75\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Rust x20}
+  \label{tab:holistic-analysis-rust-x20}
+\end{table}
+We can notice how the blocking times have not changed, since protected operations
+remain the same. While we have achieved a small slack for the
+\texttt{rp\_transaction} (5.08\%), the other two transactions that involve
+Whetstone computations still have large available slacks. Based on these
+results, especially on the smallest slack of 87.11\%, we decided to increase the
+\texttt{On\_Call\_Producer} and \\
+\texttt{Activation\_Log\_Reader} workloads by a factor 1.8, while keeping the
+\texttt{Regular\_Producer} workload fixed. The updated results are reported in
+Table [\ref{tab:holistic-analysis-rust-x1.8}].  
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.474326  & 2.34\%      & 0.001516  & 3.030E-06 \\
+      \texttt{ocp\_transaction} & 0.787600  & 3.91\%      & 0.473643  & 2.730E-06 \\
+      \texttt{alr\_transaction} & 0.944248  & 35.55\%     & 0.786757  & 0.000     \\
+      \texttt{ees\_transaction} & 0.001043  & 91855.5\%   & 0.001030  & 2.730E-06 \\
+      \hline
+      \texttt{System Utilization} & 58.86\% & & & \\
+      \texttt{System Slack} & 1.58\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Rust x1.8}
+  \label{tab:holistic-analysis-rust-x1.8}
+\end{table}
+Finally, based on the last useful available slack of 35.55\% for the
+\texttt{alr\_transaction}, we increased its workload by a factor of 1.35. The
+updated results are reported in Table [\ref{tab:holistic-analysis-rust-x1.35}].
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.474326  & 0.00\%      & 0.001516  & 3.030E-06 \\
+      \texttt{ocp\_transaction} & 0.787600  & 0.00\%      & 0.474643  & 2.730E-06 \\
+      \texttt{alr\_transaction} & 0.999068  & 0.39\%      & 0.787812  & 0.000     \\
+      \texttt{ees\_transaction} & 0.001043  & 6911.7\%    & 0.001030  & 2.730E-06 \\
+      \hline
+      \texttt{System Utilization} & 60.68\% & & & \\
+      \texttt{System Slack} & 0.39\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Rust x1.35}
+  \label{tab:holistic-analysis-rust-x1.35}
+\end{table}
+Even though the \texttt{ees\_transaction} has still a large available slack,
+since it does not perform any Whetstone computation, it is not possible to 
+increase the utilization of the system any further. Besides that, even an
+eventual increase of the execution time of \texttt{ees\_transaction} would
+not affect significantly the utilization of the system. In conclusion, under an
+holistic analysis, we achieved an utilization of the system equal to 60.68\%.
+
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.006624  & 8808.2\%     & 0.001045  & 1.361E-06 \\
+      \texttt{ocp\_transaction} & 0.007697  & 38006.3\%    & 0.005638  & 1.267E-06 \\
+      \texttt{alr\_transaction} & 0.008752  & 91394.9\%    & 0.007706  & 0.000     \\
+      \texttt{ees\_transaction} & 1.882E-05 & >=100000.0\% & 1.141E-05 & 1.267E-06 \\
+      \hline
+      \texttt{System Utilization} & 1.03\% & & & \\
+      \texttt{System Slack} & 7728.7\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Ada}
+  \label{tab:holistic-analysis-ada}
+\end{table}
+Based on these results, since the smallest available slack was 8808.2\% for the 
+\texttt{rp\_transaction}, we increased the workloads with a factor of 90 to
+reduce it significantly. The updated results are reported in Table
+[\ref{tab:holistic-analysis-ada-x88}].  
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.490670  & 1.56\%       & 0.002963  & 1.361E-06 \\
+      \texttt{ocp\_transaction} & 0.669740  & 72.27\%      & 0.490390  & 1.267E-06 \\
+      \texttt{alr\_transaction} & 0.759792  & 265.23\%     & 0.670102  & 0.000     \\
+      \texttt{ees\_transaction} & 1.882E-05 & >=100000.0\% & 1.141E-05 & 1.267E-06 \\
+      \hline
+      \texttt{System Utilization} & 55.74\% & & & \\
+      \texttt{System Slack} & 1.98\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Ada x88}
+  \label{tab:holistic-analysis-ada-x88}
+\end{table}
+Again, we can notice how the blocking times have not changed, since protected
+operations remain the same. While we have achieved a small slack for the
+\texttt{rp\_transaction} (1.56\%), the other two transactions that involve
+Whetstone computations still have large available slacks. Based on these
+results, especially on the smallest slack of 72.27\%, we decided to increase the
+\texttt{On\_Call\_Producer} and \\
+\texttt{Activation\_Log\_Reader} workloads by a factor of 1.7, while keeping the
+\texttt{Regular\_Producer} workload fixed. The updated results are reported in Table
+[\ref{tab:holistic-analysis-ada-x1.7}].  
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.490670  & 0.78\%       & 0.002963  & 1.361E-06 \\
+      \texttt{ocp\_transaction} & 0.795769  & 1.17\%       & 0.490889  & 0.000     \\
+      \texttt{alr\_transaction} & 0.948836  & 32.42\%      & 0.796380  & 1.361E-06 \\
+      \texttt{ees\_transaction} & 1.882E-05 & 56921.9\%    & 1.141E-05 & 1.267E-06 \\
+      \hline
+      \texttt{System Utilization} & 60.35\% & & & \\
+      \texttt{System Slack} & 0.78\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Ada x1.7}
+  \label{tab:holistic-analysis-ada-x1.7}
+\end{table}
+Finally, based on the last useful slack available of 32.34\% for the
+\texttt{alr\_transaction}, we increased its workload by a factor of 1.3. The
+updated results are reported in Table [\ref{tab:holistic-analysis-ada-x1.3}].
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Transaction} & \boldmath{$R_{max}$} & \textbf{Slack} &
+      \textbf{Jitter} & \textbf{MBT} \\ 
+      \midrule
+      \texttt{rp\_transaction}  & 0.490670  & 0.78\%       & 0.002963  & 1.361E-06 \\
+      \texttt{ocp\_transaction} & 0.795769  & 1.17\%       & 0.490889  & 0.000     \\
+      \texttt{alr\_transaction} & 0.994747  & 1.95\%       & 0.796563  & 1.361E-06 \\
+      \texttt{ees\_transaction} & 1.882E-05 & 56921.9\%    & 1.141E-05 & 1.267E-06 \\
+      \hline
+      \texttt{System Utilization} & 61.87\% & & & \\
+      \texttt{System Slack} & 0.78\% & & & \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic Analysis Results Ada x1.3}
+  \label{tab:holistic-analysis-ada-x1.3}
+\end{table}
+Again, the considerations made before upon the \texttt{ees\_transaction} apply
+here. In conclusion, under an holistic analysis, we achieved an utilization of the system
+equal to 61.87\%. 
+
+
