@@ -1,0 +1,84 @@
+\section{Rust Runtime}
+
+Starting from the demo application provided by the Ada guide \cite{burnsGuideUseAda2004}, we then went on implementing an equivalent system fully written in Rust.
+
+Compared to Ada, Rust does not provide a reference runtime implementation, leaving to third-party developers this incumbency. This is advantageous from a flexibility and ecosystem development standpoint, since it encourages the growth of a competitive runtime ecosystem, and fosters the development of multiple different implementation, tailored to more specific use-cases.
+On the other hand, this clearly implies more ecosystem fragmentation, and could also result in lower "quality" of the runtimes, since a single reference implementation will naturally tend to concentrate resources for its development from all the actors interested in its usage or analysis, instead of dispersing them across multiple projects.
+
+Thus, when designing and implementing a real-time system in Rust, some effort must be spent in order to identify and integrate the most appropriate runtime components for the system, having care to select compatible components that can work in harmony together. In our case this means choosing a \textit{concurrency runtime} that provides the task abstraction and scheduling primitives, a \textit{logging framework} and a \textit{Hardware Abstraction Layer} that provides higher-level abstractions over the system hardware.
+
+\subsection{RTIC}
+
+As for the \textit{concurrency runtime}, we have decided to use the \textit{RTIC} framework \cite{RticrsRtic2025}. It is generally considered to be a "concurrency framework", since it does not contain a full-fledged software kernel and relies on external \textit{Hardware Abstraction Layer} to access peripherals.
+
+RTIC implements the \textit{Stack Resource Policy} for shared resource access management \cite{bakerStackbasedSchedulingRealtime1991}, with \textit{Fixed-Priority Scheduling} \cite[Chapter~6]{liuRealTimeSystems2000}.
+
+SRP has some really useful runtime properties for real-time systems, both for performance and especially for amenability to response-time analysis. Some of those properties are:
+\begin{itemize}
+  \item Preemptive deadlock and race-free scheduling
+  \item Tasks execute on a single shared stack
+  \item Tasks run-to-completion with wait free access to shared resources
+  \item Bounded priority inversion by a single critical section
+\end{itemize}
+Those come with the following set of requirements:
+\begin{itemize}
+  \item Tasks are associated with static \textit{pre-emption levels}
+  \item Tasks execute on a single core
+  \item Tasks do not voluntarily suspend (run-to-completion)
+  \item Resource must be claimed and released in LIFO order
+\end{itemize}
+The motives behind these requirements and the proof of the properties are outside the scope of this work; they can be found in the original paper \cite{bakerStackbasedSchedulingRealtime1991}.
+
+SRP based scheduling requires the set of static priority tasks and their access to shared resources to be known in order to compute a static ceiling $\pi$ for each resource. The static resource ceiling $\pi(r)$ reflects the maximum static priority of any task that accesses the resource $r$. This is the reason why, despite its excellent properties, is not used in general-purpose OS: it requires the resource dependency graph to be known statically, which is generally not possible.
+
+FPS is a very simple scheduling scheme: every task is statically given a fixed priority value (values must have an order), and all jobs released will inherit the priority of their task. At every point in time the running job is the one with the highest priority among all the \textit{ready} ones.
+
+The key idea of RTIC is to use the native features provided by the interrupt engine of ARM microcontrollers (\textit{NVIC} \cite{armlimitedARMCortexM42009}) to implement these two protocols, obtaining a \textit{hardware-accelerated runtime} suitable for real-time systems, with minimal overhead.
+
+In the case of the ARM Cortex-M architecture, each interrupt vector entry $v_i$ is associated an \textit{Interrupt Service Routine} $isr_i$, a static priority ($p_i$), an enabled- ($en_i$) and a pending-bit ($pend_i$).
+
+An interrupt $i$ is scheduled (run) by the hardware under the conditions:
+\begin{enumerate}
+  \item $i$ is pending and enabled and has a priority higher than the \texttt{BASEPRI} register, and
+  \item $i$ has the highest priority among interrupts meeting 1.
+\end{enumerate}
+
+The SRP model for single-core static scheduling, on the other hand, states that a task should be scheduled (run) under the conditions:
+\begin{enumerate}
+  \item It is requested to run and has a static priority higher than the current system ceiling ($\Pi$)
+  \item It has the highest static priority among tasks meeting 1.
+\end{enumerate}
+The system ceiling $\Pi$ is computed as the maximum priority ceiling of the currently held resources.
+
+This shows a very close relationship between the scheduling logic implemented in hardware by the NVIC, and the model required by SRP. The mapping between logical tasks and actual hardware is quite straightforward:
+\begin{itemize}
+  \item Each task $t$ is mapped to an interrupt vector index $i$ with the corresponding ISR $isr_i = t$ and given the correct static priority $p_i = p(t)$.
+  \item The system priority ceiling $\Pi$ is mapped to the \texttt{BASEPRI} register, which is updated at the entry and exit of every \textit{critical section} (i.e. lock).
+\end{itemize}
+This mapping is computed at compile-time by RTIC (even priority ceilings of resources), thus is has no impact on the performance at runtime (\textit{zero-cost abstraction}).
+
+Actually, RTIC maps each task priority level to an ISR at the corresponding priority. Each ISR runs an \textit{asynchronous executor} that handles tasks wrapped as \textit{async} functions assigned to that priority level.
+This allows for \textit{async/await} style programming in tasks, lifting the run-to-completion requirement for them, since each section of code between two yield points can be seen as an individual task. The compiler will reject any attempt to await while holding a resource (not doing so would break the strict LIFO requirement on resource usage under SRP) \cite{RticrsRtic2025}. This in turn gives much better developer ergonomics, especially for managing inter-task communication and for handling interaction with the hardware.
+
+\subsection{Defmt}
+
+The second piece of the system is \textit{defmt} \cite{IntroductionDefmtBook}: it is a logging framework for embedded applications, written in Rust.
+
+It uses a novel approach to improve space and computational efficiency of the logging on the embedded device side. Instead of storing the format strings and perform parameter formatting on the device, it \textit{defers} those operations, moving them on the connected host.
+
+Technically, it embeds metadata about format string and the parameters types on a linker section that gets stripped before placing the firmware into the device flash. Thus, the device only needs to send the format string index and raw parameters; then the connected host, provided with the non-stripped binary file, will perform formatting and printing.
+
+The disadvantage of this approach is that without the metadata embedded in the binary file, the messages from the device are not interpretable. Nonetheless, the advantages in terms of size and computational requirements outweighs the downsides in most cases.
+
+Defmt supports different \textit{backends} for communication between the host and the device, such as \textit{RTT}, \textit{semihosting} and \textit{ITM}; in our implementation we opted to use RTT, as we had problems with the semihosting backend.
+
+\subsection{HAL}
+
+The final key component of the system is the \textit{Hardware Abstraction Layer} (HAL). It provides a high-level, portable interface to interact with the underlying hardware peripherals, abstracting away the low-level register manipulation and platform-specific details.
+
+In the Rust embedded ecosystem, HALs are typically implemented as crates that follow the \textit{embedded-hal} trait specifications \cite{RustembeddedEmbeddedhal2025}. This standardization allows for interoperability between different hardware platforms and peripheral drivers, enabling code reuse and ecosystem compatibility.
+
+For our implementation, we used the STM32F4xx HAL crate \cite{Stm32rsStm32f4xxhal2025}, which provides abstractions for GPIO pins, timers, UART communication, SPI, I2C, and other peripherals specific to the STM32F4 microcontroller family. The HAL ensures type-safe access to hardware resources at compile time, preventing common errors such as accessing uninitialized peripherals or conflicting resource usage, enforced by Rust strong type system.
+In general RTIC is HAL agnostic: it is possible to use other implementations from different vendors (e.g. Embassy).
+
+The most important peripheral needed for the experiment is the timer, which is used to provide the notion of time to the system, via a global \textit{rtic-monotonics} object, thus enabling time-based operations (e.g. delays, periodic tasks, deadline monitoring). RTIC has built-in support for our chosen HAL, hence implementing the required timer object only required calling a simple macro.
