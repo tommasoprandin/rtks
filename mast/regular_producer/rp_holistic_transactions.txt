@@ -38,7 +38,7 @@ Transaction (
                     Deadline => 1.000000,
                     Referenced_Event => rp_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => rp_w_activation,
         Output_Event => rp_w_o1,
         Activity_Operation => rp_watchdog_job,

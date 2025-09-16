@@ -99,7 +99,7 @@ Operation(
     Composite_Operation_List =>
         (rb_extract));
 
---278: 0.008692782; x20: 0.17385564; x1.8: 0.31294015
+--278: 0.008692782; x20: 0.17385564; x1.8: 0.31294015; max: 0.000031269
 Operation(
     Type => Simple,
     Name => ocp_small_whetstone,
@@ -147,7 +147,7 @@ Transaction (
             Deadline => 0.800000,
             Referenced_Event => ocp_activation))),
     Event_Handlers =>
-        ( (Type => Activity,
+        ( (Type => System_Timed_Activity,
         Input_Event => ocp_activation,
         Output_Event => ocpo1,
         Activity_Operation => ocp_job,
@@ -168,7 +168,7 @@ Transaction (
                     Deadline => 5.000000,
                     Referenced_Event => ocp_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => ocp_w_activation,
         Output_Event => ocp_w_o1,
         Activity_Operation => ocp_watchdog_job,
@@ -245,7 +245,7 @@ Operation(
     Avg_Case_Execution_Time => 4.178E-06,
     Best_Case_Execution_Time => 4.178E-06);
 
---139: 0.004346391; x20: 0.08692782; x1.8: 0.15647008; x1.35: 0.21123460
+--139: 0.004346391; x20: 0.08692782; x1.8: 0.15647008; x1.35: 0.21123460; max: 0.4999468731
 Operation(
     Type => Simple,
     Name => alr_small_whetstone,
@@ -284,10 +284,10 @@ Transaction (
         Name => alro1,
         Timing_Requirements =>
         ( Type => Hard_Global_Deadline,
-            Deadline => 1.500000,
+            Deadline => 1.000000,
             Referenced_Event => alr_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => alr_activation,
         Output_Event => alro1,
         Activity_Operation => alr_job,
@@ -308,7 +308,7 @@ Transaction (
                 Deadline => 3.000000,
                 Referenced_Event => alr_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => alr_w_activation,
         Output_Event => alr_w_o1,
         Activity_Operation => alr_watchdog_job,
@@ -401,8 +401,8 @@ Operation (
     Type => Simple,
     Name => rp_small_whetstone,
     Worst_Case_Execution_Time => 0.47278728,
-    Avg_Case_Execution_Time => 0.47263928,
-    Best_Case_Execution_Time => 0.47249128);
+    Avg_Case_Execution_Time => 0.47278728,
+    Best_Case_Execution_Time => 0.47278728);
 
 Operation (
     Type => Simple,
@@ -488,7 +488,7 @@ Transaction (
                     Deadline => 1.000000,
                     Referenced_Event => rp_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => rp_w_activation,
         Output_Event => rp_w_o1,
         Activity_Operation => rp_watchdog_job,
@@ -606,7 +606,7 @@ Transaction (
             Deadline => 0.100000,
             Referenced_Event => button_click))),
     Event_Handlers =>
-        ( (Type => Activity,
+        ( (Type => System_Timed_Activity,
         Input_Event => button_click,
         Output_Event => eeso1,
         Activity_Operation => ees_job,
@@ -627,7 +627,7 @@ Transaction (
                 Deadline => 5.000000,
                 Referenced_Event => ees_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => ees_w_activation,
         Output_Event => ees_w_o1,
         Activity_Operation => ees_watchdog_job,

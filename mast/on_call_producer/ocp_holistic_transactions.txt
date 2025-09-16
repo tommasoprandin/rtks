@@ -13,7 +13,7 @@ Transaction (
             Deadline => 0.800000,
             Referenced_Event => ocp_activation))),
     Event_Handlers =>
-        ( (Type => Activity,
+        ( (Type => System_Timed_Activity,
         Input_Event => ocp_activation,
         Output_Event => ocpo1,
         Activity_Operation => ocp_job,
@@ -34,7 +34,7 @@ Transaction (
                     Deadline => 5.000000,
                     Referenced_Event => ocp_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => ocp_w_activation,
         Output_Event => ocp_w_o1,
         Activity_Operation => ocp_watchdog_job,

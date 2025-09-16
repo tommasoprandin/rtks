@@ -13,7 +13,7 @@ Transaction (
             Deadline => 0.100000,
             Referenced_Event => button_click))),
     Event_Handlers =>
-        ( (Type => Activity,
+        ( (Type => System_Timed_Activity,
         Input_Event => button_click,
         Output_Event => eeso1,
         Activity_Operation => ees_job,
@@ -34,7 +34,7 @@ Transaction (
                 Deadline => 5.000000,
                 Referenced_Event => ees_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => ees_w_activation,
         Output_Event => ees_w_o1,
         Activity_Operation => ees_watchdog_job,

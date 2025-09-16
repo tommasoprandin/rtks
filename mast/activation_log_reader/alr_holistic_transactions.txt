@@ -13,7 +13,7 @@ Transaction (
             Deadline => 1.000000,
             Referenced_Event => alr_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => alr_activation,
         Output_Event => alro1,
         Activity_Operation => alr_job,
@@ -34,7 +34,7 @@ Transaction (
                 Deadline => 3.000000,
                 Referenced_Event => alr_w_activation))),
     Event_Handlers =>
-    ( (Type => Activity,
+    ( (Type => System_Timed_Activity,
         Input_Event => alr_w_activation,
         Output_Event => alr_w_o1,
         Activity_Operation => alr_watchdog_job,
