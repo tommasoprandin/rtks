@@ -63,7 +63,7 @@ of jitter and blocking times for each transaction are the following:
   by the higher-priority \texttt{rp\_transaction}. Its blocking time is caused
   by the \texttt{alr\_transaction};
   \item \texttt{alr\_transaction}: suffers additional jitter due to interference
-  by both the higher-priority \texttt{rp\_transaction} and
+  by both the higher-priority \texttt{rp\_transaction} and \\
   \texttt{ocp\_transaction}. It does not suffer blocking, since it represents
   the lowest-priority task in the system;
   \item \texttt{ees\_transaction}: it suffers no additional jitter than the
@@ -321,14 +321,15 @@ almost all of its executable period time, until its deadline, we noticed how the
 \texttt{activation\_log\_reader}, which has a period of 3 seconds, has a
 workload that is lower than the one of the \texttt{regular\_producer}, even
 though it has a period of 5 seconds. This implies that, during the hyperperiod,
-the \texttt{activation\_log\_reader} activates 5 times, whereas the
+the \texttt{activation\_log\_reader} activates 5 times, whereas the \\
 \texttt{on\_call\_producer} activates only 3 times. Of these activations, only in
 the 12th period do both tasks execute in the same period. 
 Moreover, since the \texttt{regular\_producer} has a period of 1 second and
-triggers both the \texttt{on\_call\_producer} and \texttt{activation\_log\_reader},
-and considering that it has a higher priority than both, the available execution
-time for these two tasks is limited to 0.5 seconds, even though their respective
-deadlines (0.8 and 1 second) would allow for longer execution. \\
+triggers both the \texttt{on\_call\_producer} and \\
+\texttt{activation\_log\_reader}, and considering that it has a higher priority
+than both, the available execution time for these two tasks is limited to 0.5
+seconds, even though their respective deadlines (0.8 and 1 second) would allow
+for longer execution. \\ 
 
 Since our goal is to maximize the total utilization, we need to
 increase as much as possible to fill the identified 3.5 seconds 
@@ -343,10 +344,10 @@ ticker overhead, which can be estimated as:
 \texttt{on\_call\_producer} completes and the \texttt{activation\_log\_reader}
 begins its execution. This overhead is pessimistically estimated as 
 the worst-case context switch time. \\
-Finally, we need to consider the possible execution of the
+Finally, we need to consider the possible execution of the \\
 \texttt{ees\_transaction}: since the \texttt{external\_event\_server} has an
-higher priority than both the tasks (this is not true for the
-\texttt{activation\_log\_reader}, if it had acquire the 
+higher priority than both the tasks (this is not true for the \\
+\texttt{activation\_log\_reader} if it had acquire the 
 \texttt{activation\_log}, thanks to the \texttt{Immediate Ceiling
 Protocol}), we must account for the cost of preemption (i.e., the context
 switch) plus the WCET of \texttt{ees\_transaction}. \\
@@ -386,7 +387,7 @@ results:
   \item Rust Total Utilization: 64.03\%;
   \item Ada Total Utilization: 65.77\%. 
 \end{itemize}
-Since the transactions have the same activation source (a
+Since the transactions have the same activation source (a \\
 \texttt{regular\_producer} job), there is no interference between tasks.
 Therefore, to validate our assumptions, we just consider only wheter best-case
 response times are within the deadlines, ignoring the worst-case response times
