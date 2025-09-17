@@ -68,7 +68,7 @@ system, together with their users (tasks) and their priority ceiling.
     EES Deadline Object & External Event Server, EES Deadline Watchdog & 15 \\
     \hline  
   \end{tabular}
-  \caption[Resource Table]{List of shared resources in the system, with their users and priority ceilings} 
+  \caption[Resource table]{List of shared resources in the system, with their users and priority ceilings}
   \label{tab:res-list}
 \end{table*}
 
@@ -118,17 +118,14 @@ activation.
 
 \subsubsection{Deadline Watchdogs}
 
-For every task in the system there is a watchdog monitor that checks for
-deadline overruns. It has the maximum priority to prevent interference (TODO:
-check). It maintains the number of deadline misses and whenever it detects one
-it prints a warning message. 
+For every task in the system there is a watchdog monitor task that checks for deadline overruns. It has the maximum priority to prevent interference (TODO: check). It maintains the number of deadline misses and whenever it detects one it prints a warning message.
 
 Figure \ref{fig:system-architecture} shows a high-level view of the system
 architecture 
 
 \begin{figure*}[!t]
   \centering
-  \includegraphics[width=0.8\textwidth]{images/system-diagram.png}
-  \caption{System architecture diagram}
+  \includegraphics[width=0.6\textwidth]{images/system-diagram.png}
+  \caption[System architecture]{System architecture diagram}
   \label{fig:system-architecture}
 \end{figure*}
