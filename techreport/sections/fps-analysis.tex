@@ -275,4 +275,119 @@ Again, the considerations made before upon the \texttt{ees\_transaction} apply
 here. In conclusion, under an holistic analysis, we achieved an utilization of the system
 equal to 61.87\%. 
 
+\subsection{Offset-Based Analysis}
+To improve the results obtained with the holistic analysis, we performed an
+offset-based analysis, which takes into account the relationships between tasks,
+thus providing less pessimistic results. \\
+To exploit the benefits of offsets, we use the \textit{Offset-Based Analysis
+with Precedence Relation} tool provided in \textit{MAST}. Due to restrictions
+imposed by this model, we had to represents each periodic
+\texttt{regular\_producer} activation as a separate transaction, plus the
+additional transaction required for the \texttt{external\_event\_server}. The
+\texttt{on\_call\_producer} and \texttt{activation\_log\_reader} activations are
+included within the \texttt{rp\_transaction}s when needed, exploiting the
+system-imposed order, i.e., the \texttt{activation\_log\_reader} always
+executes after the \texttt{on\_call\_producer}, which, in turn, always executes
+after the \texttt{regular\_producer} (if they are activated in the same period).
+Since the hyperperiod of the system is 15 seconds, we have 15
+\texttt{rp\_transaction}s plus the \texttt{ees\_transaction}, resulting in a
+total of 16 transactions.\\
 
+If the offset-based analysis helps in reducing the interference between
+tasks, we increase increase the workloads beyond what was
+achieved with the holistic analysis. The reason is that the critical instant
+faced in the holistic analyis is similar to the one faced with the offset-based
+analysis in the 12-th period, when the \texttt{regualr\_producer} activates both 
+the \texttt{on\_call\_producer} and the \texttt{activation\_log\_reader}. 
+A graphical representation of this scenario is shown in Figure
+[\ref{fig:offset-based-holistic}], where we omitted the inclusion of
+\texttt{ees\_transaction}. 
+
+\begin{figure}[t]
+  \centering
+  \resizebox{\linewidth}{!}{%
+    \includegraphics[width=0.8\textwidth]{images/timeline.png}
+  }
+  \caption{Holistic Analysis vs Offset-Based Analysis at the 12-th Period}
+  \label{fig:offset-based-holistic}
+\end{figure}
+
+The figure shows how the workloads obtained with the holistic anlysis already
+fill the available slacks also in the offset-based analysis. \\
+To further increase the utilization of the system, we decided to take advantage of
+those tasks which activate more frequently during the hyperperiod. While the
+\texttt{regular\_producer}, which activates every second, already executes for
+almost all of its executable period time, until its deadline, we noticed how the
+\texttt{activation\_log\_reader}, which has a period of 3 seconds, has a
+workload that is lower than the one of the \texttt{regular\_producer}, even
+though it has a period of 5 seconds. This implies that, during the hyperperiod,
+the \texttt{activation\_log\_reader} activates 5 times, whereas the
+\texttt{on\_call\_producer} activates only 3 times. Of these activations, only in
+the 12th period do both tasks execute in the same period. 
+Moreover, since the \texttt{regular\_producer} has a period of 1 second and
+triggers both the \texttt{on\_call\_producer} and \texttt{activation\_log\_reader},
+and considering that it has a higher priority than both, the available execution
+time for these two tasks is limited to 0.5 seconds, even though their respective
+deadlines (0.8 and 1 second) would allow for longer execution. \\
+
+Since our goal is to maximize the total utilization, we need to
+increase as much as possible to fill the identified 3.5 seconds 
+(there are 8 intervals due to 8 total activations, but since one is shared, we
+obtain 7 intervals of 0.5 seconds each). \\
+Before expressing the situation as an optimization problem, several
+considerartions must be taken into account. First, we need to account for the system
+ticker overhead, which can be estimated as:
+\centerline{$\text{Tot Sys Ticker Overhead} =
+\frac{0.500}{0.001}*\text{sys ticker worst overhead}$} 
+\noindent Next, we must consider the dispatching cost that occurs when the
+\texttt{on\_call\_producer} completes and the \texttt{activation\_log\_reader}
+begins its execution. This overhead is pessimistically estimated as 
+the worst-case context switch time. \\
+Finally, we need to consider the possible execution of the
+\texttt{ees\_transaction}: since the \texttt{external\_event\_server} has an
+higher priority than both the tasks (this is not true for the
+\texttt{activation\_log\_reader}, if it had acquire the 
+\texttt{activation\_log}, thanks to the \texttt{Immediate Ceiling
+Protocol}), we must account for the cost of preemption (i.e., the context
+switch) plus the WCET of \texttt{ees\_transaction}. \\
+We ends up with the following available times for the two systems:
+\begin{itemize}
+  \item Rust System: 0.5 - 0.0005 - 0.018E-06 - (0.018E-06 + 13.486E-06) =
+  0.49948648 seconds;
+  \item Ada System: 0.5 - 0.001928 - 3.964E-06 - (3.964E-06 + 4.303E-06) =
+  0.49805977 seconds.
+\end{itemize}
+The problem can now be expressed as the following linear optimization problem:
+\begin{align*}
+  \text{Let } & x = \text{execution time of \texttt{on\_call\_producer}} \\
+            & y = \text{execution time of \texttt{activation\_log\_reader}} \\
+            & \text{T} = \text{available time: 0.49948648 s (Rust), 0.49805977 s (Ada)} \\ 
+  \text{Maximize } & 3x + 5y \\
+  \text{Subject to } & x \leq \text{T} \\
+                      & y \leq \text{T} \\
+                      & x + y \leq \text{T} \\
+                      & x, y \geq 0
+\end{align*}
+For both the systems, the solution to this linear optimization is $x = 0$ and $y
+= T$, meaning that the \texttt{activation\_log\_reader} task should occupy the
+entire available time slot. Since this is an unrealistic scenario that goes
+againt the meaning of the system, we chose to assign the minimum workload
+possible to the \texttt{on\_call\_producer}, i.e., a workload equal to a single
+Whetstone operation. 
+The remaining time in $T$ is then assigned to the
+\texttt{activation\_log\_reader}, resulting in 0.49948648 - 0.00003127 =
+0.49945521 seconds for the Rust system and 0.49805977 - 0.0000073303 =
+0.49805244 seconds for the Ada system. \\ 
+
+With these updated workloads, the offset-based model, with the \textit{Offset-Based
+Analysis with Precedence Relation} tool in \textit{MAST}, yields the following
+results:
+\begin{itemize}
+  \item Rust Total Utilization: 64.03\%;
+  \item Ada Total Utilization: 65.77\%. 
+\end{itemize}
+Since the transactions have the same activation source (a
+\texttt{regular\_producer} job), there is no interference between tasks.
+Therefore, to validate our assumptions, we just consider only wheter best-case
+response times are within the deadlines, ignoring the worst-case response times
+as well as slacks. 
