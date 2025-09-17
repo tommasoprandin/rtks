@@ -80,7 +80,9 @@ calls, with the aim of testing the system under a wide range of loads. \\
 This workload is a parameter that we used in the analysis section to create
 different workload levels and observe the resulting behavior of the system,
 first by simulating it using the MAST tool \cite{MASTComprehensiveTool}, then by
-running the application in a real setting. 
+running the application in a real setting.
+
+To this end, we have used the \textit{Olimex STM32\-H405} \cite{olimexSTM32H405} development board, together with a \textit{STLink\-v2} \cite{STLINKV2Tool} debugging probe.
 
 \subsection{Tasks Description}
 
@@ -123,9 +125,9 @@ For every task in the system there is a watchdog monitor task that checks for de
 Figure \ref{fig:system-architecture} shows a high-level view of the system
 architecture 
 
-\begin{figure*}[!t]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.6\textwidth]{images/system-diagram.png}
+  \includegraphics[width=0.45\textwidth]{images/system-diagram.png}
   \caption[System architecture]{System architecture diagram}
   \label{fig:system-architecture}
-\end{figure*}
+\end{figure}
