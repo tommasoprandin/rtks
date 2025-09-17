@@ -1,1 +1,37 @@
 \section{Conclusions}
+In this technical report, we presented the implementation of a real-time system
+in Rust and we compared it with an equivalent implementation in Ada. The
+analysis, conducted with the \textit{MAST} tool, showed that both
+implementations are able to achieve similar results in terms of system
+utilization. To support the analysis, both systems were also tested on an
+\textit{Olimex-H405} using the identified workloads, and no missed deadlines
+were observed. \\
+Rust, and in particular the \textit{RTIC} framework, proved to be a
+valid alternative for the development of real-time systems. \\
+Regarding the \textit{RTIC} framework, by being a declarative system model for
+single-core applications, it enforces a well-defined structure,
+requiring a clear understanding and strict control over the management of both
+local and shared resources. This strong structure can support developers in
+maintaining a well-organized and systematic design of the system. However, in
+some situations it may also limit design flexibility in relation to \textit{Ada
+Ravenscar Profile}, especially when dealing with shared resources. In
+particular, we were unable to separate the responsibility of the
+\texttt{on\_call\_producer} activation, as it was not possible to implement it
+except by embedding it directly within the \texttt{deposit} call on the
+\texttt{Request\_Buffer}. This limitation stems from the fact that any access to
+a shared resource must be explicitly declared in the task’s shared resources
+and, consequently, it is not possible for a task to provide an interface through
+which other tasks may interact with it. The management of shared resources
+always requires acquiring a lock when accessing them, which can introduce
+unnecessary blocking times even in cases where the relationships between tasks
+exclude the possibility of simultaneous access. Once again, this enforced
+structure represents the trade-off between flexibility and the strong safety
+guarantees provided by Rust. \\
+Unlike the \textit{Ada Ravensacar Profile}, on the subject of deadline miss
+detenctions, the framework reveals a significant limitation by providing no
+built-in support for handling such events, thus it leaves the responsability for
+handling timing violations entirely to the developers. \\
+Finally, we would like to highlight that the \textit{RTIC} framework is still
+a valid option for the development of real-time systems, with a generated code
+that, as shown in this report, infers no substantial overhead compared to an
+equivalent implementation in \textit{Ada Ravenscar Profile}.
