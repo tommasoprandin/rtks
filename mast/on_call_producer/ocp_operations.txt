@@ -16,9 +16,9 @@ Operation(
 Operation(
     Type => Simple,
     Name => ocp_small_whetstone,
-    Worst_Case_Execution_Time => 0.31294015,
-    Avg_Case_Execution_Time => 0.31294015,
-    Best_Case_Execution_Time => 0.31294015);
+    Worst_Case_Execution_Time => 0.000031269,
+    Avg_Case_Execution_Time => 0.000031269,
+    Best_Case_Execution_Time => 0.000031269);
 
 Operation(
     Type => Composite,
