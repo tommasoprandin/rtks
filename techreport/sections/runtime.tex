@@ -63,7 +63,7 @@ the reason why, despite its excellent properties, is not used in general-purpose
 OS: it requires the resource dependency graph to be known statically, which is
 generally not possible. 
 
-\textit{FPS} is a very simple scheduling scheme: every task is statically given
+\textit{FPS} is a very simple scheduling policy: every task is statically given
 a fixed priority value (values must have an order), and all jobs released will
 inherit the priority of their task. At every point in time the running job is
 the one with the highest priority among all the \textit{ready} ones. 
@@ -107,7 +107,9 @@ between logical tasks and actual hardware is quite straightforward:
   register, which is updated at the entry and exit of every \textit{critical
   section} (i.e. lock). 
 \end{itemize}
-The mapping between tasks and ISR, and resources to their static ceilings is computed at compile-time by \textit{RTIC} using \textit{procedural macros}, thus is has no impact on the performance at runtime.
+The mapping between tasks and ISR, and resources to their static ceilings is
+computed at compile-time by \textit{RTIC} using \textit{procedural macros}, thus
+is has no impact on the performance at runtime. 
 
 Actually, \textit{RTIC} maps each task priority level to an ISR at the
 corresponding priority. Each ISR runs an \textit{asynchronous executor} that
