@@ -62,11 +62,10 @@ monitored job can actually execute due to system initialization,
 we set its first deadline equal to the system activation instant plus the
 task's relative deadline. 
 
-The system activation instant consists of a static \texttt{AtomicU32}
-representing, in ticks, the instant before which all initialization-spawned
-tasks are delayed: these mechanisms provide the system a well-defined
-"\textit{zero time}".
-TODO: Non ho capito bene cosa vuoi dire qui sopra, prova a spiegare meglio
+The system activation instant is represented by a static \texttt{AtomicU32},
+expressed in ticks, and serves as the reference point until which all tasks 
+spawned during initialization are delayed. This mechanism provides the system
+with a well-defined "\textit{zero time}".
 
 Moreover, in order to provide accurate deadline management
 for sporadic tasks, their activation signals occur inside a critical section.

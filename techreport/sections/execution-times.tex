@@ -68,18 +68,29 @@ would require non-trivial modifications to the RTIC runtime, which were
 considered out of the scope of the work and too time-consuming. Nonetheless, the
 WCET obtained remain valid. 
 
-We have decided to take the maximum execution time among one-hundred executions; when the correct profiling feature is enabled, the tasks are configured to automatically log the WCET results accumulated by the profiler and then panic to stop execution.
+We have decided to take the maximum execution time among one-thousand
+executions; when the correct profiling feature is enabled, the tasks are
+configured to automatically log the WCET results accumulated by the profiler and
+then panic to stop execution. 
 
 \subsection{Ada}
 
-Concerning the Ada system, we have re-utilized the instrumentation implemented by J. Hu and A. Gobbo in their work \cite{huJiayihuSRT2024}, aimed to perform response-time analysis over the same system model shown in the original paper \cite{burnsGuideUseAda2004}.
-
+Concerning the Ada system, we have re-utilized the instrumentation implemented
+by J. Hu and A. Gobbo in their work \cite{huJiayihuSRT2024}, aimed to perform
+response-time analysis over the \textit{Ada} system model, as shown in the
+original paper \cite{burnsGuideUseAda2004}.
 
 \subsection{WCET Times}
 
-This section contains the obtained WCET values. Both implementations have been compiled in \textit{release} mode (i.e. with all optimizations enabled), and run on the board at maximum clock speed (\unit[168]{MHz}).
+This section contains the obtained WCET values. Both implementations have been
+compiled in \textit{release} mode (i.e. with all optimizations enabled), and run
+on the board at maximum clock speed (\unit[168]{MHz}). 
 
-We have observed some significant differences in execution times for certain operations between the Ada and Rust system. We ascribe these gaps to differences in I/O backends and runtime overheads, since RTIC heavily relies on hardware features specific to ARM Cortex architecture, to compiler choices, and different math libraries.
+We have observed some significant differences in execution times for certain
+operations between the Ada and Rust system. We ascribe these gaps to differences
+in I/O backends and runtime overheads, since RTIC heavily relies on hardware
+features specific to ARM Cortex architecture, to compiler choices, and different
+math libraries. 
 
 \subsubsection{Activation Log Reader}
 \begin{table}[H]

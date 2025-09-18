@@ -14,8 +14,9 @@ than \textit{Rate Monotonic} in such cases, as it can provide feasible schedules
 where \textit{Rate Monotonic} fails.
 
 The evaluation of the system under different utilization levels was facilitated
-by the use of the \textit{Small Whetstone} algorithm to simulate computational workloads. Thanks to its configurable load and deterministic behavior without involving
-the use of shared resources, it provides a straightforward way to test the
+by the use of the \textit{Small Whetstone} algorithm to simulate computational
+workloads. Thanks to its configurable load and deterministic behavior without
+involving the use of shared resources, it provides a straightforward way to test the
 system under different utilization levels by simply scaling the WCET in the different
 \texttt{small\_whetstone} operations that are present in the \textit{MAST}
 model, without the need for new execution-time measurements.  
@@ -311,10 +312,12 @@ Since the hyperperiod of the system is 15 seconds, we have 15
 \texttt{rp\_transaction}s plus the \texttt{ees\_transaction}, resulting in a
 total of 16 transactions.
 
-If the offset-based analysis helps in reducing the interference between tasks, we increase the workloads beyond what was achieved with the holistic analysis. The reason is that the critical instant
-faced in the holistic analysis is similar to the one faced with the offset-based
-analysis in the 12th period, when the \texttt{regualr\_producer} activates both 
-the \texttt{on\_call\_producer} and the\\ \texttt{activation\_log\_reader}. 
+If the offset-based analysis helps in reducing the interference between tasks,
+we are unable to increase the workloads beyond what was achieved with the
+holistic analysis. The reason is that the critical instant faced in the holistic
+analysis is similar to the one faced with the offset-based analysis in the 12th
+period, when the \texttt{regualr\_producer} activates both the
+\texttt{on\_call\_producer} and the\\ \texttt{activation\_log\_reader}.  
 A graphical representation of this scenario is shown in Figure
 [\ref{fig:offset-based-holistic}], where we omitted the inclusion of
 \texttt{ees\_transaction}. 
@@ -341,12 +344,12 @@ though it has a period of 5 seconds. This implies that, during the hyperperiod,
 the \texttt{activation\_log\_reader} activates 5 times, whereas the \\
 \texttt{on\_call\_producer} activates only 3 times. Of these activations, only in
 the 12th period do both tasks execute in the same period. 
-Moreover, since the \texttt{regular\_producer} has a period of 1 second and
+Moreover, since the \texttt{regular\_producer} has a period of one second and
 triggers both the \texttt{on\_call\_producer} and \\
 \texttt{activation\_log\_reader}, and considering that it has a higher priority
 than both, the available execution time for these two tasks is limited to 0.5
 seconds, even though their respective deadlines (0.8 and 1 second) would allow
-for longer execution. \\ 
+for longer executions. \\ 
 
 Since our goal is to maximize the total utilization, we need to
 increase as much as possible to fill the identified 3.5 seconds 
@@ -388,13 +391,16 @@ The problem can now be expressed as the following linear optimization problem:
 \end{align*}
 For both the systems, the solution to this linear optimization is $x = 0$ and $y
 = T$, meaning that the \texttt{activation\_log\_reader} task should occupy the
-entire available time slot. Since this is an unrealistic scenario, we chose to assign the minimum workload
-possible to the \texttt{on\_call\_producer}, i.e., a workload equal to a single
-Whetstone operation. 
+entire available time slot. Since this is an unrealistic scenario, we chose to
+assign the minimum workload possible to the \texttt{on\_call\_producer}, i.e., a
+workload equal to a single Whetstone operation. 
 The remaining time in $T$ is then assigned to the
-\texttt{activation\_log\_reader}, resulting in 0.49948648 - 0.00003127 =
-0.49945521 seconds for the Rust system and 0.49805977 - 0.0000073303 =
-0.49805244 seconds for the Ada system. \\ 
+\texttt{activation\_log\_reader}, resulting in 0.49948648 - 0.00004456 =
+0.49944192 seconds for the Rust system and 0.49805977 - 0.00002079 =
+0.49785182 seconds for the Ada system. Here, 0.00004456 and 0.00002079 correspond
+to the WCETs of the \texttt{on\_call\_producer} in \textit{Rust} and \textit{Ada},
+respectively, which include not only the execution of a single Whetstone
+operation but also all the other operations that the job must normally perform. 
 
 With these updated workloads, the offset-based model, with the \textit{Offset-Based
 Analysis with Precedence Relation} tool in \textit{MAST}, yields the following

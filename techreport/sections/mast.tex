@@ -10,11 +10,9 @@ In particular, for the purpose of this project, \textit{MAST} can perform
 response-time analysis for real-time systems on a single-processor using a
 \textit{Fixed-Priority Scheduling} policy. The tool also supports preemptive 
 tasks and the \textit{Immediate Ceiling Protocol (ICP)} for managing shared
-resources. This latter support stems from the fact that \textit{MAST} was
-originally designed to analyze \textit{Ada} systems TODO: Sicuro sia stato creato per Ada?, which implements the
-\textit{ICP} for resource access control. Since \textit{ICP} and \textit{SRP}
-exhibit similar observable behavior, \textit{MAST} can be used to analyze
-\textit{SRP}-based system, such as our \textit{Rust} implementation.
+resources. Since \textit{ICP} and \textit{SRP} exhibit similar observable
+behavior, \textit{MAST} can be used to analyze \textit{SRP}-based system, such
+as our \textit{Rust} implementation. 
 
 \subsection{MAST Model}
 To analyze the system using \textit{MAST}, a model of the system must be

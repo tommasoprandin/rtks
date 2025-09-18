@@ -1,125 +1,3 @@
-\section{Experimental Results}
-
-To prove the validity of our response-time analysis, we ran some
-experiments on the software application on a real development board
-(Olimex STM32\-H405). In particular, the goal was to validate the scheduling
-feasibility of the system using the computed workloads from the RTA, and then
-obtain the values that make the system fail to meet its deadlines
-(\textit{sensitivity analysis}). The latter experiments were only performed on
-the Rust system. 
-
-\subsubsection{Holistic Analysis}
-
-From the holistic analysis, we obtained the workloads reported in table
-\ref{tab:exp-holistic-baseline} that maximize the system utilization. 
-\begin{table}
-  \centering
-  \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lcc}
-      \toprule
-      \textbf{Task} & \textbf{Workload (ops)} & \textbf{Scaling} \\
-      \midrule
-      \texttt{Regular\_Producer}       & 15120 & 756 $\times$ 20 \\
-      \texttt{On\_Call\_Producer}      & 10008 & 278 $\times$ 20 $\times$ 1.8 \\
-      \texttt{Activation\_Log\_Reader} & 6755  & 139 $\times$ 20 $\times$ 1.8 $\times$ 1.35 \\
-      \bottomrule
-    \end{tabular}
-  }
-  \caption{Holistic baseline workloads (board experiments)}
-  \label{tab:exp-holistic-baseline}
-\end{table}
-With this computed workloads both systems managed to meet all the deadlines
-after execution of 50 \textit{hyperperiods}, which was considered to be a sufficient number of tests. 
-
-Then, we started experimenting with varying workloads by focusing on one task at
-a time keeping the others fixed, we obtained the results in table
-\ref{tab:exp-holistic-sensitivity}. Workloads values were incremented at steps
-of 100. 
-
-\begin{table}
-  \centering
-  \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lccc l}
-      \toprule
-      \textbf{Scenario} & \textbf{RP (ops)} & \textbf{OCP (ops)} & \textbf{ALR (ops)} & \textbf{Observed} \\
-      \midrule
-      Baseline          & 15120 & 10008 & 6755  & No deadline misses \\
-      \midrule
-      RP increase       & 15200 & 10008 & 6755  & ALR misses $\sim$1/4 (when released with OCP) \\
-      RP increase       & 16000 & 10008 & 6755  & RP always misses; ALR misses as before \\
-      \midrule
-      OCP increase      & 15120 & 10100 & 6755  & ALR misses $\sim$1/4 (when released with OCP) \\
-      OCP increase      & 15120 & 16900 & 6755  & OCP always misses; ALR misses as before \\
-      \midrule
-      ALR increase      & 15120 & 10008 & 6900  & ALR misses $\sim$1/4 \\
-      ALR increase      & 15120 & 10008 & 16900 & ALR always misses; no impact on others \\
-      \bottomrule
-    \end{tabular}
-  }
-  \caption{Holistic sensitivity results (board experiments)}
-  \label{tab:exp-holistic-sensitivity}
-\end{table}
-
-Results matched closely the static analysis performed, since even small
-increments from the original baseline incurred in deadline misses. These results
-also highlight a key property of FPS: under overload conditions the tasks gets
-affected in priority order (from lower to highest). 
-
-\subsection{Offset-based Analysis}
-
-Using offset-based analysis we obtained the workloads in table
-\ref{tab:exp-offset-baseline} that maximize the system utilization. 
-
-\begin{table}
-  \centering
-  \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lcc}
-      \toprule
-      \textbf{Task} & \textbf{Workload (ops)} & \textbf{Notes} \\
-      \midrule
-      \texttt{Regular\_Producer}       & 15120 & Baseline from analysis \\
-      \texttt{On\_Call\_Producer}      & 15973 & Baseline from analysis \\
-      \texttt{Activation\_Log\_Reader} & 1     & Baseline from analysis \\
-      \bottomrule
-    \end{tabular}
-  }
-  \caption{Offset-based baseline workloads (board experiments)}
-  \label{tab:exp-offset-baseline}
-\end{table}
-
-No deadline misses were observed after 10 \textit{hyperperiods}.
-
-The sensitivity analysis produced the values in table \ref{tab:exp-offset-sensitivity}.
-
-\begin{table}
-  \centering
-  \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lccc l}
-      \toprule
-      \textbf{Scenario} & \textbf{RP (ops)} & \textbf{OCP (ops)} & \textbf{ALR (ops)} & \textbf{Observed} \\
-      \midrule
-      Baseline          & 15120 & 1 & 15973     & No deadline misses \\
-      \midrule
-      RP increase       & 16000 & 1 & 15973     & RP and ALR always miss \\
-      \midrule
-      OCP increase      & 15120 & 900   & 15973     & ALR misses $\sim$1/4 (when released with OCP) \\
-      OCP increase      & 15120 & 16900 & 15973     & OCP always misses; ALR misses as before \\
-      \midrule
-      ALR increase      & 15120 & 15973 & 16900 & ALR always misses; no impact on others \\
-      \bottomrule
-    \end{tabular}
-  }
-  \caption{Offset-based sensitivity results (board experiments)}
-  \label{tab:exp-offset-sensitivity}
-\end{table}
-
-This time, results were slightly more distant from the ones obtained from static
-analysis. This could be due to an overestimation of the WCET of system and
-operation overhead. 
-
-Nonetheless, results still follow a consistent behavior when overload is reached, with the lowest priority jobs suffering from interference and incurring in deadline misses.
-
-
 \section{Conclusions}
 
 In this technical report, we presented the implementation of a real-time system
@@ -140,11 +18,10 @@ requiring a clear understanding and strict control over the management of both
 local and shared resources. This strong structure can support developers in
 maintaining a well-organized and systematic design of the system.
 
-However, in
-some situations it may also limit design flexibility in relation to \textit{Ada
-Ravenscar Profile}, especially when dealing with shared resources. In
-particular, we were unable to separate the responsibility of the
-\texttt{on\_call\_producer} activation, as it was not possible to implement it
+However, in some situations it may also limit design flexibility in relation to
+\textit{Ada Ravenscar Profile}, especially when dealing with shared resources.
+In particular, we were unable to separate the responsibility of the
+\texttt{on\_call\_producer} activation, as it was not possible to implement it 
 except by embedding it directly within the \texttt{deposit} call on the
 \texttt{Request\_Buffer}. This limitation stems from the fact that any access to
 a shared resource must be explicitly declared in the task’s shared resources
@@ -166,4 +43,10 @@ performant option for the development of real-time systems, with a generated
 code that, as shown in this report, infers no substantial overhead compared to
 an equivalent implementation in \textit{Ada Ravenscar Profile}.
 
-The code relevant for this work is available on GitHub repositories, the URLs can be found in the references section. The \textit{rtks} repo \cite{prandinTommasoprandinRtks2025} contains the Rust system code, while the \textit{gee} repo \cite{prandinTommasoprandinGee2025} contains the Ada one. The identification of \textit{RTIC} system overheads was performed in the \textit{Profiling-RTIC} repository \cite{bresolinGianlucaBresolinProfilingRTIC2025}.
+The code relevant for this work is available on GitHub repositories, the URLs
+can be found in the references section. The \textit{rtks} repo
+\cite{prandinTommasoprandinRtks2025} contains the \textit{Rust} system code,
+while the \textit{gee} repo \cite{prandinTommasoprandinGee2025} contains the
+\textit{Ada} one. The identification of some \textit{RTIC} system overheads was
+performed in the \textit{Profiling-RTIC} repository
+\cite{bresolinGianlucaBresolinProfilingRTIC2025}.  
