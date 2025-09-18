@@ -348,8 +348,8 @@ Finally, we need to consider the possible execution of the \\
 \texttt{ees\_transaction}: since the \texttt{external\_event\_server} has an
 higher priority than both the tasks (this is not true for the \\
 \texttt{activation\_log\_reader} if it had acquire the 
-\texttt{activation\_log}, thanks to the \texttt{Immediate Ceiling
-Protocol}), we must account for the cost of preemption (i.e., the context
+\texttt{activation\_log}, thanks to the \texttt{Stack Resource Protocol}), we
+must account for the cost of preemption (i.e., the context 
 switch) plus the WCET of \texttt{ees\_transaction}. \\
 We ends up with the following available times for the two systems:
 \begin{itemize}

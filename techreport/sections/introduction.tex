@@ -1,0 +1,37 @@
+\section{Introduction}
+Real-time embedded systems demand precise control over timing, concurrency and
+resource management.  
+Such systems are often used in critical applications where failure to meet
+timing constraints can lead to severe consequences. Hence, developing a
+real-time system requires careful consideration of the underlying runtime
+environment, necessitating a clear understanding of how the system will behave
+in order to provide sufficient guarantees on meeting timing requirements. \\
+The choice of the runtime environment is a crucial aspect in the design of a
+real-time system, as it can significantly impact the system's ability to meet
+its desired behaviour through reliable mechanisms it offers. One of the most
+popular languages that meets the needs of real-time systems is \textit{Ada},
+which has been widely used in the development of safety-critical systems due to
+its deterministic constructs that allow high analysability of the code. While
+\textit{Ada} remains a robust choice, recent advances in the \textit{Rust}
+programming language have introduced new opportunities for real-time systems
+development. \\ 
+In this paper, a real-time system originally implemented using the \textit{Ada
+Ravenscar Profile} is re-implemented in \textit{Rust} using the\textit{Real-Time
+Intrupput-driven Concurrency (RTIC)} framework \cite{RTIC}, which is responsible for
+managing the scheduling of tasks through a \textit{Fixed-Priority Scheduling}
+and the resource sharing in the system under \textit{Stack Resource Policy
+(SRP)}. \\ 
+For the analysis of the system, the \textit{MAST} tool is used to verify the
+timing properties and to analyze the system under different workloads, which is
+run on a \textit{STM32F4} microcontroller. \\ 
+The goal of this work is to demonstrate the feasibility of using Rust and RTIC
+for real-time systems, while also providing some considerations and comparison
+with the original \textit{Ada} implementation. \\ 
+The rest of the paper is organized as follows. Section 2 presents a formal
+description of the system model. Section 3 introduces the \textit{Rust Runtime},
+in particular the \textit{RTIC} framework and its key concepts. Sections 4 and 5
+discuss the measurement of execution times and the detection of deadline misses,
+respectively. Section 6 provides an overview of the \textit{MAST} tool and its
+analysis capabilities. In Section 7, we present the \textit{Fixed-Priority
+Scheduling (FPS)} analysis of the system. Finally, Section 8 concludes the paper
+reporting the main findings.  
