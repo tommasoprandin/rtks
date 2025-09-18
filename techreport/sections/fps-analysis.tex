@@ -1,36 +1,42 @@
 \section{FPS Analysis}
 In this section we present our \textit{Fixed-Priority Scheduling (FPS)} analysis
-of the system. The analysis was performed by modeling the system through a
+of the system.
+
+The analysis was performed by modeling the system through a
 \textit{MAST} model, which was then analyzed using the \textit{MAST} tool to verify
-the timing properties and to analyze the system under different workloads. \\
-The priority assignment was done according to the \textit{Deadline Monotonic}
+the timing properties and to analyze the system under different workloads.
+
+Priority assignment was done according to the \textit{Deadline Monotonic}
 scheme, which assigns higher priorities to tasks with shorter deadlines. This
 choice comes from the fact that tasks in the system do not have implicit
 deadlines and, as theory proves, \textit{Deadline Monotonic} performs better
 than \textit{Rate Monotonic} in such cases, as it can provide feasible schedules
-where \textit{Rate Monotonic} fails. \\
+where \textit{Rate Monotonic} fails.
+
 The evaluation of the system under different utilization levels was facilitated
-by the use of the \textit{Small Whetstone} algorithm to simulate computational workloads.
-Thanks to its configurable load and deterministic behaviour without involving
+by the use of the \textit{Small Whetstone} algorithm to simulate computational workloads. Thanks to its configurable load and deterministic behavior without involving
 the use of shared resources, it provides a straightforward way to test the
-system under differen utilizations by simply scaling the WCET in the different
+system under different utilization levels by simply scaling the WCET in the different
 \texttt{small\_whetstone} operations that are present in the \textit{MAST}
 model, without the need for new execution-time measurements.  
 
 \subsection{Holistic Analysis}
-We first conducted an holistic analysis, considering all the tasks as
-intendepent. As a consequence, this analysis is pessimistic, since it does not
-take into account the relationships between tasks. System feasibility is
+
+We first conducted a holistic analysis, considering all the tasks as
+independent. As a consequence, this analysis is pessimistic, since it does not
+take into account any relationship between tasks. System feasibility is
 therefore evaluated based on the worst-case scenario at the critical instant, i.e.,
 when all tasks are released simultaneously (not a realistic and possible case).
+
 The analysis was performed using the \textit{Classic RM Analysis} tool in
 \textit{MAST}, which implements the classic exact response-time analysis for
 single-processor systems under \textit{Fixed-Priority Scheduling} (although it's
 called \textit{Rate Monotonic}, it bases \textit{Deadline Monotonic} analysis). \\
 The first results of the analysis were made considering the system under the
 loads provided in the original \textit{Guided Extended Example}, i.e.,
-with the following Whetstone workloads (accompained by their corresponding WCETs
+with the following Whetstone workloads (accompanied by their corresponding WCETs
 expressed in seconds).
+
 \begin{table}[H]
   \label{tab:holistic-analysis-ada}
   \resizebox{\linewidth}{!}{%
@@ -46,13 +52,15 @@ expressed in seconds).
   }
   \caption{Whetstone Operations}
 \end{table}
+
 The obtained results are reported in Table [\ref{tab:holistic-analysis-rust}] and
-Table [\ref{tab:holistic-analysis-ada}]. Times are expressed in seconds and we
+Table [\ref{tab:holistic-analysis-ada}]. Times are expressed in seconds, and we
 omitted the watchdogs' transactions (which were instead included in the Rust
 model) since they are not relevant for identifying increasing workload factors.
 Regarding the jitter times, all transactions suffer jitter due to the system
 ticker interrupt and the context switch overhead. Moreover, additional sources 
 of jitter and blocking times for each transaction are the following:
+
 \begin{itemize}
   \item \texttt{rp\_transaction}: suffers additional jitter due to the possible
   interference of the \texttt{ees\_transaction}. Its blocking time is instead due
@@ -67,7 +75,7 @@ of jitter and blocking times for each transaction are the following:
   \texttt{ocp\_transaction}. It does not suffer blocking, since it represents
   the lowest-priority task in the system;
   \item \texttt{ees\_transaction}: it suffers no additional jitter than the
-  aforementioned overheads. Its blockig time is caused by the
+  aforementioned overheads. Its blocking time is caused by the
   \texttt{alr\_transaction} which can possibly access the shared
   \texttt{Activation\_Log} resource with ceiling priority equal to the
   priority of \texttt{ees\_transaction}.
@@ -145,9 +153,11 @@ Table [\ref{tab:holistic-analysis-rust-x1.8}].
   \caption{Holistic Analysis Results Rust x1.8}
   \label{tab:holistic-analysis-rust-x1.8}
 \end{table}
+
 Finally, based on the last useful available slack of 35.55\% for the
 \texttt{alr\_transaction}, we increased its workload by a factor of 1.35. The
 updated results are reported in Table [\ref{tab:holistic-analysis-rust-x1.35}].
+
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
     \begin{tabular}{lcccc}
@@ -168,12 +178,13 @@ updated results are reported in Table [\ref{tab:holistic-analysis-rust-x1.35}].
   \caption{Holistic Analysis Results Rust x1.35}
   \label{tab:holistic-analysis-rust-x1.35}
 \end{table}
+
 Even though the \texttt{ees\_transaction} has still a large available slack,
 since it does not perform any Whetstone computation, it is not possible to 
 increase the utilization of the system any further. Besides that, even an
 eventual increase of the execution time of \texttt{ees\_transaction} would
-not affect significantly the utilization of the system. In conclusion, under an
-holistic analysis, we achieved an utilization of the system equal to 60.68\%.
+not affect significantly the utilization of the system. In conclusion, under
+holistic analysis, we achieved 60.68\% system utilization.
 
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
@@ -195,10 +206,12 @@ holistic analysis, we achieved an utilization of the system equal to 60.68\%.
   \caption{Holistic Analysis Results Ada}
   \label{tab:holistic-analysis-ada}
 \end{table}
+
 Based on these results, since the smallest available slack was 8808.2\% for the 
 \texttt{rp\_transaction}, we increased the workloads with a factor of 90 to
 reduce it significantly. The updated results are reported in Table
 [\ref{tab:holistic-analysis-ada-x88}].  
+
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
     \begin{tabular}{lcccc}
@@ -219,6 +232,7 @@ reduce it significantly. The updated results are reported in Table
   \caption{Holistic Analysis Results Ada x88}
   \label{tab:holistic-analysis-ada-x88}
 \end{table}
+
 Again, we can notice how the blocking times have not changed, since protected
 operations remain the same. While we have achieved a small slack for the
 \texttt{rp\_transaction} (1.56\%), the other two transactions that involve
@@ -228,6 +242,7 @@ results, especially on the smallest slack of 72.27\%, we decided to increase the
 \texttt{Activation\_Log\_Reader} workloads by a factor of 1.7, while keeping the
 \texttt{Regular\_Producer} workload fixed. The updated results are reported in Table
 [\ref{tab:holistic-analysis-ada-x1.7}].  
+
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
     \begin{tabular}{lcccc}
@@ -248,9 +263,11 @@ results, especially on the smallest slack of 72.27\%, we decided to increase the
   \caption{Holistic Analysis Results Ada x1.7}
   \label{tab:holistic-analysis-ada-x1.7}
 \end{table}
+
 Finally, based on the last useful slack available of 32.34\% for the
 \texttt{alr\_transaction}, we increased its workload by a factor of 1.3. The
 updated results are reported in Table [\ref{tab:holistic-analysis-ada-x1.3}].
+
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
     \begin{tabular}{lcccc}
@@ -271,17 +288,18 @@ updated results are reported in Table [\ref{tab:holistic-analysis-ada-x1.3}].
   \caption{Holistic Analysis Results Ada x1.3}
   \label{tab:holistic-analysis-ada-x1.3}
 \end{table}
+
 Again, the considerations made before upon the \texttt{ees\_transaction} apply
-here. In conclusion, under an holistic analysis, we achieved an utilization of the system
-equal to 61.87\%. 
+here. In conclusion, under holistic analysis, we achieved 61.87\% system utilization. 
 
 \subsection{Offset-Based Analysis}
 To improve the results obtained with the holistic analysis, we performed an
 offset-based analysis, which takes into account the relationships between tasks,
-thus providing less pessimistic results. \\
-To exploit the benefits of offsets, we use the \textit{Offset-Based Analysis
+thus providing less pessimistic results.
+
+To exploit the benefits of offset-based analysis, we use the \textit{Offset-Based Analysis
 with Precedence Relation} tool provided in \textit{MAST}. Due to restrictions
-imposed by this model, we had to represents each periodic
+imposed by this model, we had to represent each periodic
 \texttt{regular\_producer} activation as a separate transaction, plus the
 additional transaction required for the \texttt{external\_event\_server}. The
 \texttt{on\_call\_producer} and \texttt{activation\_log\_reader} activations are
@@ -291,14 +309,12 @@ executes after the \texttt{on\_call\_producer}, which, in turn, always executes
 after the \texttt{regular\_producer} (if they are activated in the same period).
 Since the hyperperiod of the system is 15 seconds, we have 15
 \texttt{rp\_transaction}s plus the \texttt{ees\_transaction}, resulting in a
-total of 16 transactions.\\
+total of 16 transactions.
 
-If the offset-based analysis helps in reducing the interference between
-tasks, we increase increase the workloads beyond what was
-achieved with the holistic analysis. The reason is that the critical instant
-faced in the holistic analyis is similar to the one faced with the offset-based
-analysis in the 12-th period, when the \texttt{regualr\_producer} activates both 
-the \texttt{on\_call\_producer} and the \texttt{activation\_log\_reader}. 
+If the offset-based analysis helps in reducing the interference between tasks, we increase the workloads beyond what was achieved with the holistic analysis. The reason is that the critical instant
+faced in the holistic analysis is similar to the one faced with the offset-based
+analysis in the 12th period, when the \texttt{regualr\_producer} activates both 
+the \texttt{on\_call\_producer} and the\\ \texttt{activation\_log\_reader}. 
 A graphical representation of this scenario is shown in Figure
 [\ref{fig:offset-based-holistic}], where we omitted the inclusion of
 \texttt{ees\_transaction}. 
@@ -312,8 +328,9 @@ A graphical representation of this scenario is shown in Figure
   \label{fig:offset-based-holistic}
 \end{figure}
 
-The figure shows how the workloads obtained with the holistic anlysis already
-fill the available slacks also in the offset-based analysis. \\
+The figure shows how the workloads obtained with the holistic analysis already
+fill the available slacks also in the offset-based analysis.
+
 To further increase the utilization of the system, we decided to take advantage of
 those tasks which activate more frequently during the hyperperiod. While the
 \texttt{regular\_producer}, which activates every second, already executes for
@@ -336,7 +353,7 @@ increase as much as possible to fill the identified 3.5 seconds
 (there are 8 intervals due to 8 total activations, but since one is shared, we
 obtain 7 intervals of 0.5 seconds each). \\
 Before expressing the situation as an optimization problem, several
-considerartions must be taken into account. First, we need to account for the system
+considerations must be taken into account. First, we need to account for the system
 ticker overhead, which can be estimated as:
 \centerline{$\text{Tot Sys Ticker Overhead} =
 \frac{0.500}{0.001}*\text{sys ticker worst overhead}$} 
@@ -371,8 +388,7 @@ The problem can now be expressed as the following linear optimization problem:
 \end{align*}
 For both the systems, the solution to this linear optimization is $x = 0$ and $y
 = T$, meaning that the \texttt{activation\_log\_reader} task should occupy the
-entire available time slot. Since this is an unrealistic scenario that goes
-againt the meaning of the system, we chose to assign the minimum workload
+entire available time slot. Since this is an unrealistic scenario, we chose to assign the minimum workload
 possible to the \texttt{on\_call\_producer}, i.e., a workload equal to a single
 Whetstone operation. 
 The remaining time in $T$ is then assigned to the
@@ -389,6 +405,6 @@ results:
 \end{itemize}
 Since the transactions have the same activation source (a \\
 \texttt{regular\_producer} job), there is no interference between tasks.
-Therefore, to validate our assumptions, we just consider only wheter best-case
+Therefore, to validate our assumptions, we just consider only whether best-case
 response times are within the deadlines, ignoring the worst-case response times
 as well as slacks. 

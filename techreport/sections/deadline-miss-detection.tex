@@ -1,33 +1,40 @@
 \section{Deadline Miss Detection}
 \label{sec:DeadlineMissDetection}
-In our system, each task is associated with an hard deadline, as described in
-Table [\ref{tab:tasks-list}]. In order to detect a deadline miss, since the 
+In our system, each task is associated with a hard deadline, as described in
+Table [\ref{tab:tasks-list}].
+
+In order to detect a deadline miss, since the 
 \textit{RTIC} framework does not provide any built-in mechanism for this, for
-each task we implemented a watchdog task responsible for monitoring its jobs
-deadlines. \\ 
-To achieve the desired behaviour, i.e., a watchdog declares a deadline miss if
+each task we implemented a watchdog task responsible for monitoring jobs
+deadlines. 
+
+To achieve the desired behavior, i.e., a watchdog declares a deadline miss if
 and only if the associated job fails to complete its execution before its
 deadline, we used a shared resource, called
 \texttt{deadline\_protected\_object}. This resource is a struct containing a
-boolean flag, which value rappresents whether the job has completed its
-execution or not. In \textit{RTIC} framework, each shared resource needs
+boolean flag, whose value represents whether the job has completed its
+execution or not.
+
+In \textit{RTIC} framework, each shared resource needs
 to be acquired before being accessed or before invoking any of its associated
 methods. Therefore, when a monitored job acquired the lock on the
 \texttt{deadline\_protected\_object} to invoke \texttt{cancel\_deadline} (which
 is the method responsible for acknowledging the deadline), it can not be
-preempeted by its watchdog task. This prevents the watchdog from preempting the
+preempted by its watchdog task. This prevents the watchdog from preempting the
 monitored job while it is updating the flag, avoiding undesired deadline miss
-detections. \\ 
-Additionaly, the \texttt{deadline\_protected\_object} struct contains an
+detections.
+
+Additionally, the \texttt{deadline\_protected\_object} struct contains an
 activations counter, which allows for finer control over the requests to clear
 deadline misses, allowing stale requests to be ignored. \\
 The watchdog tasks have the highest priority in the system: this ensures that as
 soon as a deadline is missed, the corresponding watchdog will be scheduled to
-run immediately, beside the aforemetioned case in which the monitored job has
+run immediately, beside the aforementioned case in which the monitored job has
 already acquired the lock on \texttt{deadline\_protected\_object}. The
 highest priority also implies the \texttt{deadline\_protected\_object}’s ceiling
 is the highest value in the system, preventing the controlled task from blocking
 the watchdog’s execution due to a higher ceiling value of a resource it may own.\\ 
+
 Since in our system we have periodic and sporadic tasks, we implemented two
 different types of watchdogs: 
 \begin{itemize}
@@ -37,8 +44,8 @@ different types of watchdogs:
     \texttt{deadline\_protected\_object}, it invokes its method
     \texttt{deadline\_miss\_detected}. This method checks the flag and, if it is
     still false, it declares a deadline miss. Then, the watchdog increments the
-    next deadline by the period of the associated task and it loops again;
-    \item \texttt{sporadic\_deadline\_watchdog}: this watchdog waits on an
+    next deadline by the period of the associated task, and it loops again;
+    \item \texttt{sporadic\_deadline\_watchdog}: this watchdog waits on a
     activation signal that notices it of a new activation of the monitored job. 
     The watchdog then calculates the next deadline by adding the relative
     deadline of the associated task with the activation time of the monitored
@@ -49,14 +56,18 @@ different types of watchdogs:
     \texttt{periodic\_deadline\_watchdog} case. After that, it loops again,
     waiting for the next activation signal.
 \end{itemize}
+
 To avoid the first activation of a periodic watchdog from starting before the
-monitored job can actually execute due to system initialisation, 
+monitored job can actually execute due to system initialization, 
 we set its first deadline equal to the system activation instant plus the
 task's relative deadline. 
-The system activation instant consists in a static \texttt{AtomicU32}
-rappresenting, in ticks, the instant before which all initializtion-spawned
-tasks are delayed: this mechanisms provides the system with a well defined
-"\textit{zero time}". \\ 
+
+The system activation instant consists of a static \texttt{AtomicU32}
+representing, in ticks, the instant before which all initialization-spawned
+tasks are delayed: these mechanisms provide the system a well-defined
+"\textit{zero time}".
+TODO: Non ho capito bene cosa vuoi dire qui sopra, prova a spiegare meglio
+
 Moreover, in order to provide accurate deadline management
 for sporadic tasks, their activation signals occur inside a critical section.
 This prevents unwanted preemptions between task activation and the sending

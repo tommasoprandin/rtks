@@ -15,7 +15,7 @@ smaller relative deadline. It is an optimal algorithm for constrained deadlines
 and fixed-priority scheduling \cite[p.~119]{liuRealTimeSystems2000}. \\ 
 The deadline watchdogs have been given the highest priority in order to detect
 overrun without interference from other tasks (see section
-\ref{sec:DeadlineMissDetection} for furhter details).
+\ref{sec:DeadlineMissDetection} for further details).
 
 The tasks in the system share various resources. Access is regulated by variants
 of the \textit{Priority Ceiling Protocol}
@@ -32,15 +32,12 @@ value among all the task using the given resource.
 Table [\ref{tab:res-list}] contains the list of all the shared resources in the
 system, together with their users (tasks) and their priority ceiling. 
 
-\begin{table*}[!t]
+\begin{table*}[t]
   \centering
-    \begin{tabular}{p{0.2\linewidth} p{0.2\linewidth} p{0.1\linewidth}
-    p{0.2\linewidth} p{0.1\linewidth}}
-      \hline
-        \textbf{Task} & \textbf{Task Type} & \textbf{Period/} & 
-        \textbf{Deadline (ms)} & \textbf{Priority} \\
-        & & \textbf{Min\_Interarrival (ms)} & & \\
-      \hline
+  \begin{tabular*}{0.9\linewidth}{@{\extracolsep{\fill}}llrrr@{}}
+      \toprule
+      \textbf{Task} & \textbf{Task Type} & \textbf{Period / Min. Inter-arrival (\unit{ms})} & \textbf{Deadline (ms)} & \textbf{Priority} \\
+      \midrule
         Activation Log Reader & Sporadic & 3000 & 1000 & 3\\
         On Call Producer & Sporadic & 5000 & 800 & 5 \\
         Regular Producer & Periodic & 1000 & 500 & 7 \\
@@ -50,18 +47,18 @@ system, together with their users (tasks) and their priority ceiling.
         OCP Deadline Watchdog  & Sporadic & 5000 & 800 & 15 \\
         RP Deadline Watchdog & Periodic & 1000 & 500 & 15 \\
         EES Deadline Watchdog & Sporadic (interrupt) & 5000 & 100 & 15 \\
-      \hline
-    \end{tabular}
+      \bottomrule
+  \end{tabular*}
   \caption[Task Table]{List of tasks in the system, with their parameters}
   \label{tab:tasks-list}
 \end{table*}
 
-\begin{table*}[!t]
+\begin{table*}[t]
   \centering
-  \begin{tabular}{ p{0.2\linewidth} p{0.5\linewidth} p{0.1\linewidth}}
-    \hline
+  \begin{tabular*}{0.9\linewidth}{@{\extracolsep{\fill}}llr@{}}
+    \toprule
     \textbf{Resource} & \textbf{Users} & \textbf{Ceiling}\boldmath{$\pi_R$} \\
-    \hline
+    \midrule
     Activation Log & Activation Log Reader, External Event Server & 11 \\
     Event Queue & External Event Server, External Event ISR & 11 \\
     Request Buffer & Regular Producer, On-Call Producer & 7 \\
@@ -69,12 +66,13 @@ system, together with their users (tasks) and their priority ceiling.
     OCP Deadline Object & On-Call Producer, OCP Deadline Watchdog & 15 \\
     RP Deadline Object & Regular Producer, RP Deadline Watchdog & 15 \\
     EES Deadline Object & External Event Server, EES Deadline Watchdog & 15 \\
-    \hline  
-  \end{tabular}
+    \bottomrule  
+  \end{tabular*}
   \caption[Resource table]{List of shared resources in the system, with their 
   users and priority ceilings} 
   \label{tab:res-list}
 \end{table*}
+
 
 In order to emulate a realistic workload for task requiring some kind of
 computation, the small variant of the Whetstone benchmark
