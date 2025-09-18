@@ -3,12 +3,12 @@ In this section we present our \textit{Fixed-Priority Scheduling (FPS)} analysis
 of the system. The analysis was performed by modeling the system through a
 \textit{MAST} model, which was then analyzed using the \textit{MAST} tool to verify
 the timing properties and to analyze the system under different workloads. \\
-The priority assignment was done according to the \textit{Deadline Monotonic} policy, which
-assigns higher priorities to tasks with shorter deadlines. This choice comes
-from the fact that tasks in the system do not have implicit deadlines and, as
-theory proves, \textit{Deadline Monotonic} performs better than \textit{Rate  
-Monotonic} in such cases, as it can provide feasible schedules where
-\textit{Rate Monotonic} fails. \\
+The priority assignment was done according to the \textit{Deadline Monotonic}
+scheme, which assigns higher priorities to tasks with shorter deadlines. This
+choice comes from the fact that tasks in the system do not have implicit
+deadlines and, as theory proves, \textit{Deadline Monotonic} performs better
+than \textit{Rate Monotonic} in such cases, as it can provide feasible schedules
+where \textit{Rate Monotonic} fails. \\
 The evaluation of the system under different utilization levels was facilitated
 by the use of the \textit{Small Whetstone} algorithm to simulate computational workloads.
 Thanks to its configurable load and deterministic behaviour without involving

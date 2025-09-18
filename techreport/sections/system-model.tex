@@ -20,9 +20,10 @@ overrun without interference from other tasks (see section
 The tasks in the system share various resources. Access is regulated by variants
 of the \textit{Priority Ceiling Protocol}
 \cite{shaPriorityInheritanceProtocols1990} depending on the implementation: the
-Ada system implements the \textit{Immediate Priority Ceiling Protocol}
-\cite{chengImplementationPriorityCeiling2007}, while the Rust system uses
-\textit{Stack Resource Policy} \cite{bakerStackbasedSchedulingRealtime1991}.\\ 
+\textit{Ada} system implements the \textit{Immediate Priority Ceiling Protocol}
+\cite{chengImplementationPriorityCeiling2007}, while the \textit{Rust} system
+uses \textit{Stack Resource Policy}
+\cite{bakerStackbasedSchedulingRealtime1991}.\\  
 While the implementation is slightly different, both protocols show the same
 properties and response-time behavior. They require to specify the ceiling value
 for each shared resource, which is obtained by picking the maximum priority

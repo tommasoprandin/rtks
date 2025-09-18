@@ -1,19 +1,25 @@
 \section{MAST}
 The response time analysis of the system has been largely performed using the
-\textit{MAST} tool. \textit{MAST} is a \textit{Modeling and Analysis Suite for
-Real-Time} applications, developed at the \textit{University of Canatabria}. It
-enables the modelling of real-time systems and provides a set of tools for
-performing various types of analysis on a given model. \\
-In particular, for the purpose of this project, its ability to perform
-response-time analysis for real-time systems on a single-processor using
-\textit{Fixed-Priority Scheduling} policy. The tool also supports preemptive
-tasks and the \textit{Immediate Ceiling Protocol} for managing shared resources.
+\textit{MAST} tool \cite{MASTComprehensiveTool}. \textit{MAST} is a
+\textit{Modeling and Analysis Suite for Real-Time} applications, developed at
+the \textit{University of Canatabria}. It enables the modelling of real-time
+systems and provides a set of tools for performing various types of analysis on
+a given model. \\ 
+In particular, for the purpose of this project, \textit{MAST} can perform
+response-time analysis for real-time systems on a single-processor using a
+\textit{Fixed-Priority Scheduling} policy. The tool also supports preemptive 
+tasks and the \textit{Immediate Ceiling Protocol (ICP)} for managing shared
+resources. This latter support stems from the fact that \textit{MAST} was
+originally designed to analyze \textit{Ada} systems, which implements the
+\textit{ICP} for resource access control. Since \textit{ICP} and \textit{SRP}
+exhibit similar observable behaviour, \textit{MAST} can be used to analyze
+\textit{SRP}-based system, such as our \textit{Rust} implementation.
 
 \subsection{MAST Model}
 To analyze the system using \textit{MAST}, a model of the system must be
 provided in the form of an XML or text file. In this sub-section, we describe
 the model components available for representing the system. Furtrher details can
-be found in the \textit{MAST description}. % TODO add reference to doc 
+be found in the \textit{MAST description} \cite{mastdescription}.
 
 \subsubsection{Processing\_Resource} 
 It represents a resource capable of executing abstract activities. In our case,
@@ -28,7 +34,7 @@ of the ISR itself.
 It represents a timer used by a processing resource. In our system we have to
 deal with \textit{Ticker}, a system that has a periodic ticker. The
 informations required by this type of timer are the period and the worst-case
-overhead time, i.e. the time taken to process the ticker interrupt, including
+overhead time, i.e., the time taken to process the ticker interrupt, including
 the scheduling overhead required for scanning and moving the jobs in the ready
 queue. 
 
@@ -40,13 +46,13 @@ resource it is hosted on, the available priority range and the worst context
 switch time. This last parameter denotes the time taken to set 
 the context switch interrupt as pending and to execute its handler, which is
 responsible for saving registers of active context and for restoring the ones of
-the new one.
+the new active context.
 
 \subsubsection{Shared\_Resource}
 It represents a resource that is shared among tasks. As stated before, the
 \textit{MAST} model uses the \textit{Immediate Ceiling Protocol}; therefore the
 priority specified for a shared resource is its ceiling priority, i.e. the
-highest priority of the tasks that access it. 
+highest priority of those tasks which access it.
 
 \subsubsection{Scheduling\_Server}
 It represents a schedulable entity in a processing resource. Since we use a
@@ -98,12 +104,12 @@ is composed of three components:
 \subsection{MAST Tools}
 \textit{MAST} supports different types of analysis tools. In this subsection, we
 present those used in our system's analysis, while further details
-can be found in the \textit{MAST description}. % TODO add reference to doc 
+can be found in the \textit{MAST description} \cite{restrictionsMast}.
 \begin{itemize}
     \item \textit{Classic RM Analysis}: the classic exact response-time analysis
     for single-processor fixed-priority systems.
     Although the name might suggest support only for \textit{Rate Monotonic}
-    policy, it also covers \textit{Deadline Monotonic} as well, which is the policy
+    scheme, it also covers \textit{Deadline Monotonic} as well, which is the one
     adopted in our system; 
     \item \textit{Offeset-based Approximate with Precedence Relation Analysis}: 
     response-time analysis that improves the holistic analysis by taking into
@@ -111,14 +117,15 @@ can be found in the \textit{MAST description}. % TODO add reference to doc
     use of offsets. Those precedence relations, togheter with tasks priorities,
     provide a tighter estimation of the response times comparing to other tools.
 \end{itemize}
-Each analysis tool, as described in the \textit{MAST restrictions}, % TODO add
-is subject to certain limitations regarding the expression power of the model, 
-particulary in how transactions can be constructed. The most relavant are:
+Each analysis tool, as described in the \textit{MAST restrictions}
+\cite{restrictionsMast}, is subject to certain limitations regarding the
+expression power of the model, particulary in how transactions can be
+constructed. The most relavant are: 
 \begin{itemize}
     \item\textit{Restricted\_Multipath\_Transactions}: it imposes the absence of
     branch elements in side transactions;
     \item \textit{Referenced\_Events\_Are\_External\_Only}: it requires only
-    external events as referencable events, therefore only external events can
+    external events as referenceable events, therefore only external events can
     be used as activation events for deadlines; 
     \item\textit{Linear\_Transactions\_Only}: it allows just one external event
     per transaction. 

@@ -2,20 +2,43 @@
 
 \subsection{Rust}
 
-Obtaining the \textit{Worst-Case Execution Times} for every operation in the system is a crucial step in order to perform response-time analysis.
+Obtaining the \textit{Worst-Case Execution Times} for every operation in the
+system is a crucial step in order to perform response-time analysis. 
 
-We decided to leverage the \textit{Data Watchpoint and Trace Unit} (DWT) \cite[Chapter~9]{armlimitedARMCortexM42009}. DWT supports multiple functionalities such as: debugger hardware watchpoints, multiple comparators, and cycle counters. For our purposes, the latter one was sufficient.
+We decided to leverage the \textit{Data Watchpoint and Trace Unit (DWT)}
+\cite[Chapter~9]{armlimitedARMCortexM42009}. \textit{DWT} supports multiple
+functionalities such as: debugger hardware watchpoints, multiple comparators,
+and cycle counters. For our purposes, the latter one was sufficient. 
 
-In particular, the DWT peripheral holds a cycle counter that can be read from the \texttt{DWT\_CYCCNT} register, which in turn can be used to implement a simple \textit{stopwatch} that can measure time spans.
+In particular, the \textit{DWT} peripheral holds a cycle counter that can be
+read from the \texttt{DWT\_CYCCNT} register, which in turn can be used to
+implement a simple \textit{stopwatch} that can measure time spans. 
 
-The chosen HAL \cite{Stm32rsStm32f4xxhal2025} already provides a stopwatch implementation that correctly handles the wrap around of the clock counter. The typical system clock frequency of our board is \unit[168]{MHz}, which makes the period $T = \frac{1}{f} \simeq \unit[5.95]{ns}$. Since the counter size is \unit[32]{bits}, it will wrap around every $2^{32} \cdot T \simeq \unit[25]{s}$, thus it must be handled to prevent wrong readings.
+The chosen \textit{HAL} \cite{Stm32rsStm32f4xxhal2025} already provides a
+stopwatch implementation that correctly handles the wrap around of the clock
+counter. The typical system clock frequency of our board is \unit[168]{MHz},
+which makes the period $T = \frac{1}{f} \simeq \unit[5.95]{ns}$. Since the
+counter size is \unit[32]{bits}, it will wrap around every $2^{32} \cdot T
+\simeq \unit[25]{s}$, thus it must be handled to prevent wrong readings. 
 
-The stopwatch implementation provides an API that closely resembles the workings of a manual stopwatch: it exports a \texttt{reset} function that simply clears every stored time, and a \texttt{lap} method that stores the current cycle count into a buffer passed during initialization. Lap times can be simply obtained by subtracting successive cycle counts, having care of handling wrap around.
+The stopwatch implementation provides an API that closely resembles the workings
+of a manual stopwatch: it exports a \texttt{reset} function that simply clears
+every stored time, and a \texttt{lap} method that stores the current cycle count
+into a buffer passed during initialization. Lap times can be simply obtained by
+subtracting successive cycle counts, having care of handling wrap around. 
 
-Since this implementation is really basic, we have designed a higher-level abstraction that allows us to obtain the WCET of selected code sections, corresponding to the operations under analysis.
-Listing \ref{lst:profiler-abstraction} shows the \textit{trait} definition for our profiler abstraction. The \texttt{lap} method gets called at the end of every iteration (i.e. job execution), using the saved laps; then results can be logged using the corresponding method.
+Since this implementation is really basic, we have designed a higher-level
+abstraction that allows us to obtain the WCET of selected code sections,
+corresponding to the operations under analysis. 
+Listing [\ref{lst:profiler-abstraction}] shows the \textit{trait} definition for
+our profiler abstraction. The \texttt{lap} method gets called at the end of
+every iteration (i.e. job execution), using the saved laps; then results can be
+logged using the corresponding method. 
 
-Every different task gets a tailored implementation of the profiler \textit{trait}; they mainly differ on the implementation of the \texttt{update\_wcet} method, to accommodate the different operations inside the tasks.
+Every different task gets a tailored implementation of the profiler
+\textit{trait}; they mainly differ on the implementation of the
+\texttt{update\_wcet} method, to accommodate the different operations inside the
+tasks. 
 
 \begin{listing}
   \begin{minted}[breaklines]{rust}
@@ -31,9 +54,19 @@ Every different task gets a tailored implementation of the profiler \textit{trai
   \label{lst:profiler-abstraction}
 \end{listing}
 
-The profiling instrumentation is gated behind \texttt{cargo} \textit{features}: when the user desires to start the profiling of a certain operation it needs to enable the related feature at compile-time. This ensures that the application is completely devoid of profiling objects and instructions that are not needed during normal operation, improving performance and code size.
+The profiling instrumentation is gated behind \texttt{cargo} \textit{features}:
+when the user desires to start the profiling of a certain operation it needs to
+enable the related feature at compile-time. This ensures that the application is
+completely devoid of profiling objects and instructions that are not needed
+during normal operation, improving performance and code size. 
 
-The runtime does not provide a \textit{task time} like Ada Ravenscar, hence, to obtain the desired WCET, we had to manually raise the priority of the task under analysis in order to prevent any interference that could invalidate our times. This is not a very clean solution, but implementing a proper task execution time would require non-trivial modifications to the RTIC runtime, which were considered out of the scope of the work and too time-consuming. Nonetheless, the WCET obtained remain valid.
+The runtime does not provide a \textit{task time} like Ada Ravenscar, hence, to
+obtain the desired WCET, we had to manually raise the priority of the task under
+analysis in order to prevent any interference that could invalidate our times.
+This is not a very clean solution, but implementing a proper task execution time
+would require non-trivial modifications to the RTIC runtime, which were
+considered out of the scope of the work and too time-consuming. Nonetheless, the
+WCET obtained remain valid. 
 
 We have decided to take the maximum execution time among one-hundred executions; when the correct profiling feature is enabled, the tasks are configured to automatically log the WCET results accumulated by the profiler and then panic to stop execution.
 
@@ -110,7 +143,7 @@ We have observed some significant differences in execution times for certain ope
     OCP Activation & 2903 & 5283 \\
     Check Due & 208 & 1372 \\
     ALR Signal & 1982 & 6922 \\
-    Cancel Deadline & 273 & -- \\
+    Cancel Deadline & 273 & 2835 \\
     RP Cancel Deadline & 8314 & -- \\
     \bottomrule
   \end{tabular*}
@@ -125,15 +158,14 @@ We have observed some significant differences in execution times for certain ope
     \toprule
     \textbf{Operation} & \textbf{Rust (\unit{ns})} & \textbf{Ada (\unit{ns})} \\
     \midrule
-    Systick (worst case) & 702 & -- \\
-    Systick Overhead & 32 & -- \\
-    ISR Switch & 2732 & -- \\
-    Delay Until & 865 & -- \\
+    Systick Overhead & 702 & 3906 \\
+    ISR Switch & 2732 & 2850 \\
+    Delay Until & 865 & 5420 \\
     Signal RTIC & 4160 & -- \\
     Task Semaphore & 4178 & -- \\
     Event Queue & 4101 & -- \\
     Spawn Overhead & 148 & -- \\
-    Context-Switch & 166 & -- \\
+    Context-Switch & 166 & 3090 \\
     \bottomrule
   \end{tabular*}
   \caption{WCET — Kernel/Runtime Overheads}

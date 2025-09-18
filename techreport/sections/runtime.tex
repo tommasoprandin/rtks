@@ -1,27 +1,27 @@
 \section{Rust Runtime}
 
-Starting from the demo application provided by the Ada guide
+Starting from the demo application provided by the \textit{Ada} guide
 \cite{burnsGuideUseAda2004}, we then went on implementing an equivalent system
-fully written in Rust. 
+fully written in \textit{Rust}. 
 
-Compared to Ada, Rust does not provide a reference runtime implementation,
-leaving to third-party developers this incumbency. This is advantageous from a
-flexibility and ecosystem development standpoint, since it encourages the growth
-of a competitive runtime ecosystem, and fosters the development of multiple
-different implementation, tailored to more specific use-cases. 
-On the other hand, this clearly implies more ecosystem fragmentation, and could
-also result in lower "quality" of the runtimes, since a single reference
-implementation will naturally tend to concentrate resources for its development
-from all the actors interested in its usage or analysis, instead of dispersing
-them across multiple projects. 
+Compared to \textit{Ada}, \textit{Rust} does not provide a reference runtime
+implementation, leaving to third-party developers this incumbency. This is
+advantageous from a flexibility and ecosystem development standpoint, since it
+encourages the growth of a competitive runtime ecosystem, and fosters the
+development of multiple different implementation, tailored to more specific
+use-cases. On the other hand, this clearly implies more ecosystem fragmentation,
+and could also result in lower "quality" of the runtimes, since a single
+reference implementation will naturally tend to concentrate resources for its
+development from all the actors interested in its usage or analysis, instead of
+dispersing them across multiple projects. 
 
-Thus, when designing and implementing a real-time system in Rust, some effort
-must be spent in order to identify and integrate the most appropriate runtime
-components for the system, having care to select compatible components that can
-work in harmony together. In our case this means choosing a \textit{concurrency
-runtime} that provides the task abstraction and scheduling primitives, a
-\textit{logging framework} and a \textit{Hardware Abstraction Layer} that
-provides higher-level abstractions over the system hardware. 
+Thus, when designing and implementing a real-time system in \textit{Rust}, some
+effort must be spent in order to identify and integrate the most appropriate
+runtime components for the system, having care to select compatible components
+that can work in harmony together. In our case this means choosing a
+\textit{concurrency runtime} that provides the task abstraction and scheduling
+primitives, a \textit{logging framework} and a \textit{Hardware Abstraction
+Layer} that provides higher-level abstractions over the system hardware. 
 
 \subsection{RTIC}
 
@@ -39,17 +39,17 @@ access management \cite{bakerStackbasedSchedulingRealtime1991}, with
 both for performance and especially for amenability to response-time analysis.
 Some of those properties are: 
 \begin{itemize}
-  \item Preemptive deadlock and race-free scheduling
-  \item Tasks execute on a single shared stack
-  \item Tasks run-to-completion with wait free access to shared resources
-  \item Bounded priority inversion by a single critical section
+  \item Preemptive deadlock and race-free scheduling;
+  \item Tasks execute on a single shared stack;
+  \item Tasks run-to-completion with wait free access to shared resources;
+  \item Bounded priority inversion by a single critical section.
 \end{itemize}
 Those come with the following set of requirements:
 \begin{itemize}
-  \item Tasks are associated with static \textit{pre-emption levels}
-  \item Tasks execute on a single core
-  \item Tasks do not voluntarily suspend (run-to-completion)
-  \item Resource must be claimed and released in LIFO order
+  \item Tasks are associated with static \textit{pre-emption levels};
+  \item Tasks execute on a single core;
+  \item Tasks do not voluntarily suspend (run-to-completion);
+  \item Resource must be claimed and released in LIFO order.
 \end{itemize}
 The motives behind these requirements and the proof of the properties are
 outside the scope of this work; they can be found in the original paper
@@ -102,7 +102,7 @@ between logical tasks and actual hardware is quite straightforward:
 \begin{itemize}
   \item Each task $t$ is mapped to an interrupt vector index $i$ with the
   corresponding ISR $isr_i = t$ and given the correct static priority $p_i =
-  p(t)$. 
+  p(t)$; 
   \item The system priority ceiling $\Pi$ is mapped to the \texttt{BASEPRI}
   register, which is updated at the entry and exit of every \textit{critical
   section} (i.e. lock). 
@@ -125,7 +125,7 @@ communication and for handling interaction with the hardware.
 \subsection{Defmt}
 
 The second piece of the system is \textit{defmt} \cite{IntroductionDefmtBook}:
-it is a logging framework for embedded applications, written in Rust. 
+it is a logging framework for embedded applications, written in \textit{Rust}. 
 
 It uses a novel approach to improve space and computational efficiency of the
 logging on the embedded device side. Instead of storing the format strings and
@@ -155,8 +155,8 @@ The final key component of the system is the \textit{Hardware Abstraction Layer
 underlying hardware peripherals, abstracting away the low-level register
 manipulation and platform-specific details. 
 
-In the Rust embedded ecosystem, \textit{HAL}s are typically implemented as
-crates that follow the \textit{embedded-hal} trait specifications
+In the \textit{Rust} embedded ecosystem, \textit{HAL}s are typically implemented
+as crates that follow the \textit{embedded-hal} trait specifications
 \cite{RustembeddedEmbeddedhal2025}. This standardization allows for
 interoperability between different hardware platforms and peripheral drivers,
 enabling code reuse and ecosystem compatibility. 
@@ -167,7 +167,7 @@ pins, timers, \textit{UART} communication, \textit{SPI}, \textit{I2C}, and other
 peripherals specific to the \textit{STM32F4} microcontroller family. The
 \textit{HAL} ensures type-safe access to hardware resources at compile time,
 preventing common errors such as accessing uninitialized peripherals or
-conflicting resource usage, enforced by Rust strong type system. 
+conflicting resource usage, enforced by \textit{Rust} strong type system. 
 In general \textit{RTIC} is \textit{HAL} agnostic: it is possible to use other
 implementations from different vendors (e.g. \textit{Embassy}). 
 
@@ -176,4 +176,4 @@ used to provide the notion of time to the system, via a global
 \textit{rtic-monotonics} object, thus enabling time-based operations (e.g.
 delays, periodic tasks, deadline monitoring). \textit{RTIC} has built-in support
 for our chosen \textit{HAL}, hence implementing the required timer object only
-required calling a simple macro.  
+required calling a simple macro \cite{Rticmonotonics}.  

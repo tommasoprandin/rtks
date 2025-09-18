@@ -1,12 +1,12 @@
 \section{Conclusions}
-In this technical report, we presented the implementation of a real-time system
-in Rust and we compared it with an equivalent implementation in Ada. The
-analysis, conducted with the \textit{MAST} tool, showed that both
+In this technical report, we presented the implementation of a real-time system 
+in \textit{Rust} and we compared it with an equivalent implementation in Ada.
+The analysis, conducted with the \textit{MAST} tool, showed that both
 implementations are able to achieve similar results in terms of system
 utilization. To support the analysis, both systems were also tested on an
 \textit{Olimex STM32\-H405} \cite{olimexSTM32H405} using the identified
 workloads, and no missed deadlines were observed. \\
-Rust, and in particular the \textit{RTIC} framework, proved to be a
+\textit{Rust}, and in particular the \textit{RTIC} framework, proved to be a
 valid alternative for the development of real-time systems. \\
 Regarding the \textit{RTIC} framework, by being a declarative system model for
 single-core applications, it enforces a well-defined structure,
@@ -26,7 +26,7 @@ always requires acquiring a lock when accessing them, which can introduce
 unnecessary blocking times even in cases where the relationships between tasks
 exclude the possibility of simultaneous access. Once again, this enforced
 structure represents the trade-off between flexibility and the strong safety
-guarantees provided by Rust. \\
+guarantees provided by \textit{Rust}. \\
 Unlike the \textit{Ada Ravensacar Profile}, on the subject of deadline miss
 detenctions, the framework reveals a significant limitation by providing no
 built-in support for handling such events, thus it leaves the responsability for
