@@ -37,8 +37,9 @@ system, together with their users (tasks) and their priority ceiling.
     \begin{tabular}{p{0.2\linewidth} p{0.2\linewidth} p{0.1\linewidth}
     p{0.2\linewidth} p{0.1\linewidth}}
       \hline
-        \textbf{Task} & \textbf{Task Type} & \textbf{Period (ms)} & 
+        \textbf{Task} & \textbf{Task Type} & \textbf{Period/} & 
         \textbf{Deadline (ms)} & \textbf{Priority} \\
+        & & \textbf{Min\_Interarrival (ms)} & & \\
       \hline
         Activation Log Reader & Sporadic & 3000 & 1000 & 3\\
         On Call Producer & Sporadic & 5000 & 800 & 5 \\
