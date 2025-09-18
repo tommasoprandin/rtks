@@ -10,6 +10,7 @@ use crate::{
 use stm32f4xx_hal::dwt::StopWatch;
 
 pub const DEADLINE: u32 = 1_000;
+const ACTIVATION_LOG_READER_WORKLOAD: u32 = 16900;
 
 pub struct ActivationLogReaderLocals {
     semaphore: TaskSemaphoreWaiter<'static>,
@@ -74,7 +75,7 @@ pub async fn activation_log_reader<
         #[cfg(feature = "profiling-activation_log_reader")]
         locals.profiler.reset();
 
-        if let Err(err) = production_workload::small_whetstone(1_000) {
+        if let Err(err) = production_workload::small_whetstone(ACTIVATION_LOG_READER_WORKLOAD) {
             defmt::error!(
                 "Error computing whetstone in activation log reader: {}",
                 err
