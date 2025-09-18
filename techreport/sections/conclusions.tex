@@ -1,4 +1,110 @@
+\section{Experimental Results}
+
+To prove the validity of our response-time analysis, we went on running some experiments on the software application executing on a real development board (Olimex STM32\-H405). In particular, the goal was to validate the scheduling feasibility of the system using the computed workloads from the RTA, and then obtain the values that make the system fail to meet deadlines (\textit{sensitivity analysis}). The latter experiments were only performed on the Rust system.
+
+\subsubsection{Holistic Analysis}
+
+From the holistic analysis, we obtained the workloads reported in table \ref{tab:exp-holistic-baseline} that maximize the system utilization.
+\begin{table}
+  \centering
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Task} & \textbf{Workload (ops)} & \textbf{Scaling} \\
+      \midrule
+      \texttt{Regular\_Producer}       & 15120 & 756 $\times$ 20 \\
+      \texttt{On\_Call\_Producer}      & 10008 & 278 $\times$ 20 $\times$ 1.8 \\
+      \texttt{Activation\_Log\_Reader} & 6755  & 139 $\times$ 20 $\times$ 1.8 $\times$ 1.35 \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic baseline workloads (board experiments)}
+  \label{tab:exp-holistic-baseline}
+\end{table}
+With this computed workloads both systems managed to meet all the deadlines after execution of 5 \textit{hyperperiods}.
+
+Then, we started experimenting with varying workloads by focusing on one task at a time keeping the others fixed, we obtained the results in table \ref{tab:exp-holistic-sensitivity}. Workloads values were incremented at steps of 100.
+
+\begin{table}
+  \centering
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccc l}
+      \toprule
+      \textbf{Scenario} & \textbf{RP (ops)} & \textbf{OCP (ops)} & \textbf{ALR (ops)} & \textbf{Observed} \\
+      \midrule
+      Baseline          & 15120 & 10008 & 6755  & No deadline misses \\
+      \midrule
+      RP increase       & 15200 & 10008 & 6755  & ALR misses $\sim$1/4 (when released with OCP) \\
+      RP increase       & 16000 & 10008 & 6755  & RP always misses; ALR misses as before \\
+      \midrule
+      OCP increase      & 15120 & 10100 & 6755  & ALR misses $\sim$1/4 (when released with OCP) \\
+      OCP increase      & 15120 & 16900 & 6755  & OCP always misses; ALR misses as before \\
+      \midrule
+      ALR increase      & 15120 & 10008 & 6900  & ALR misses $\sim$1/4 \\
+      ALR increase      & 15120 & 10008 & 16900 & ALR always misses; no impact on others \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Holistic sensitivity results (board experiments)}
+  \label{tab:exp-holistic-sensitivity}
+\end{table}
+
+Results matched closely the static analysis performed, since even small increments from the original baseline incurred in deadline misses. These results also highlight a key property of FPS: under overload conditions the tasks gets affected in priority order (from lower to highest).
+
+\subsection{Offset-based Analysis}
+
+Using offset-based analysis we obtained the workloads in table \ref{tab:exp-offset-baseline} that maximize the system utilization.
+
+\begin{table}
+  \centering
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Task} & \textbf{Workload (ops)} & \textbf{Notes} \\
+      \midrule
+      \texttt{Regular\_Producer}       & 15120 & Baseline from analysis \\
+      \texttt{On\_Call\_Producer}      & 15973 & Baseline from analysis \\
+      \texttt{Activation\_Log\_Reader} & 1     & Baseline from analysis \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Offset-based baseline workloads (board experiments)}
+  \label{tab:exp-offset-baseline}
+\end{table}
+
+No deadline misses were observed after 10 \textit{hyperperiods}.
+
+The sensitivity analysis produced the values in table \ref{tab:exp-offset-sensitivity}.
+
+\begin{table}
+  \centering
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccc l}
+      \toprule
+      \textbf{Scenario} & \textbf{RP (ops)} & \textbf{OCP (ops)} & \textbf{ALR (ops)} & \textbf{Observed} \\
+      \midrule
+      Baseline          & 15120 & 1 & 15973     & No deadline misses \\
+      \midrule
+      RP increase       & 16000 & 1 & 15973     & RP and ALR always miss \\
+      \midrule
+      OCP increase      & 15120 & 900   & 15973     & ALR misses $\sim$1/4 (when released with OCP) \\
+      OCP increase      & 15120 & 16900 & 15973     & OCP always misses; ALR misses as before \\
+      \midrule
+      ALR increase      & 15120 & 15973 & 16900 & ALR always misses; no impact on others \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Offset-based sensitivity results (board experiments)}
+  \label{tab:exp-offset-sensitivity}
+\end{table}
+
+This time, results were slightly more distant from the ones obtained from static analysis. This could be due to an overestimation of the WCET of system and operation overhead.
+
+Nonetheless, results still follow a consistent behavior when overload is reached.
+
+
 \section{Conclusions}
+<<<<<<< HEAD
 In this technical report, we presented the implementation of a real-time system 
 in \textit{Rust} and we compared it with an equivalent implementation in Ada.
 The analysis, conducted with the \textit{MAST} tool, showed that both
@@ -7,6 +113,16 @@ utilization. To support the analysis, both systems were also tested on an
 \textit{Olimex STM32\-H405} \cite{olimexSTM32H405} using the identified
 workloads, and no missed deadlines were observed. \\
 \textit{Rust}, and in particular the \textit{RTIC} framework, proved to be a
+=======
+In this technical report, we presented the implementation of a real-time system
+in Rust, and we compared it with an equivalent implementation in Ada. The
+analysis, conducted with the \textit{MAST} tool, showed that both
+implementations are able to achieve similar results in terms of system
+utilization. To support the analysis, both systems were also tested on an
+\textit{Olimex STM32\-H405} \cite{olimexSTM32H405} using the identified
+workloads, and no missed deadlines were observed. Then we tested the validity of our analysis, in terms of "pessimism" (sensitivity), obtaining consistent results. \\
+Rust, and in particular the \textit{RTIC} framework, proved to be a
+>>>>>>> 8f2cd4dd1b810975ea32a531ce1322d2939bfa63
 valid alternative for the development of real-time systems. \\
 Regarding the \textit{RTIC} framework, by being a declarative system model for
 single-core applications, it enforces a well-defined structure,
@@ -28,10 +144,9 @@ exclude the possibility of simultaneous access. Once again, this enforced
 structure represents the trade-off between flexibility and the strong safety
 guarantees provided by \textit{Rust}. \\
 Unlike the \textit{Ada Ravensacar Profile}, on the subject of deadline miss
-detenctions, the framework reveals a significant limitation by providing no
-built-in support for handling such events, thus it leaves the responsability for
+detections, the framework reveals a significant limitation by providing no
+built-in support for handling such events, thus it leaves the responsibility for
 handling timing violations entirely to the developers. \\
-Finally, we would like to highlight that the \textit{RTIC} framework is still
-a valid option for the development of real-time systems, with a generated code
+We consider the \textit{RTIC} framework to be a valid, flexible and performant option for the development of real-time systems, with a generated code
 that, as shown in this report, infers no substantial overhead compared to an
 equivalent implementation in \textit{Ada Ravenscar Profile}.

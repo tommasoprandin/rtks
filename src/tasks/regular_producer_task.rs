@@ -14,8 +14,8 @@ use stm32f4xx_hal::dwt::StopWatch;
 pub const PERIOD: u32 = 1_000;
 pub const DEADLINE: u32 = 500;
 
-const REGULAR_PRODUCER_WORKLOAD: u32 = 756;
-const ON_CALL_PRODUCER_WORKLOAD: u32 = 278;
+const REGULAR_PRODUCER_WORKLOAD: u32 = 15120;
+const ON_CALL_PRODUCER_WORKLOAD: u32 = 1;
 const ACTIVATION_CONDITION: usize = 2;
 
 pub struct RegularProducerLocals {
