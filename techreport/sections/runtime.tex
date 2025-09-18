@@ -107,9 +107,7 @@ between logical tasks and actual hardware is quite straightforward:
   register, which is updated at the entry and exit of every \textit{critical
   section} (i.e. lock). 
 \end{itemize}
-This mapping is computed at compile-time by \textit{RTIC} (even priority
-ceilings of resources), thus is has no impact on the performance at runtime
-(\textit{zero-cost abstraction}). 
+The mapping between tasks and ISR, and resources to their static ceilings is computed at compile-time by \textit{RTIC} using \textit{procedural macros}, thus is has no impact on the performance at runtime.
 
 Actually, \textit{RTIC} maps each task priority level to an ISR at the
 corresponding priority. Each ISR runs an \textit{asynchronous executor} that
