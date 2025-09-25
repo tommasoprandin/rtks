@@ -8,7 +8,7 @@ environment, necessitating a clear understanding of how the system will behave
 in order to provide sufficient guarantees on meeting timing requirements. \\
 The choice of the runtime environment is a crucial aspect in the design of a
 real-time system, as it can significantly impact the system's ability to meet
-its desired behaviour through reliable mechanisms it offers. One of the most
+its desired behaviour through runtime mechanisms. One of the most
 popular languages that meets the needs of real-time systems is \textit{Ada},
 which has been widely used in the development of safety-critical systems due to
 its deterministic constructs that allow high analysability of the code. While
@@ -16,19 +16,20 @@ its deterministic constructs that allow high analysability of the code. While
 programming language have introduced new opportunities for real-time systems
 development. \\ 
 In this paper, a real-time system originally implemented using the \textit{Ada
-Ravenscar Profile} is re-implemented in \textit{Rust} using the\textit{Real-Time
-Intrupput-driven Concurrency (RTIC)} framework \cite{RTIC}, which is responsible for
-managing the scheduling of tasks through a \textit{Fixed-Priority Scheduling}
-and the resource sharing in the system under \textit{Stack Resource Policy
-(SRP)}. \\ 
-For the analysis of the system, the \textit{MAST} tool is used to verify the
-timing properties and to analyze the system under different workloads, with the 
-system running on a \textit{STM32F4} microcontroller. \\ 
+Ravenscar Profile} is re-implemented in \textit{Rust} using the
+\textit{Real-Time Interupput-driven Concurrency (RTIC)} framework \cite{RTIC},
+which is responsible for triggering the scheduling of tasks through a
+\textit{Fixed-Priority Scheduling} and the resource sharing in the system under
+\textit{Stack Resource Policy (SRP)}. \\ 
+For the analysis of the system, the \textit{MAST} tool
+\cite{MASTComprehensiveTool} is used to verify the timing properties and to
+analyze the system under different workloads, with the system running on a
+\textit{STM32F4} microcontroller. \\  
 The goal of this work is to demonstrate the feasibility of using \textit{Rust}
 and \textit{RTIC} for real-time systems, while also providing some
 considerations and comparison with the original \textit{Ada} implementation. \\ 
 The rest of the paper is organized as follows. Section 2 presents a formal
-description of the system model. Section 3 introduces the \textit{Rust Runtime},
+description of the system model. Section 3 introduces the \textit{Rust runtime},
 in particular the \textit{RTIC} framework and its key concepts. Sections 4 and 5
 discuss the measurement of execution times and the detection of deadline misses,
 respectively. Section 6 provides an overview of the \textit{MAST} tool and its
