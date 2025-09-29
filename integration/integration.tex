@@ -190,7 +190,45 @@
 %% information and builds the first part of the formatted document.
 \maketitle
 
-\section{Why we use a one-to-one mapping between tasks and watchdogs?}
+\section{Why we used a one-to-one mapping between tasks and watchdogs in the Rust System?}
+Since \textit{RTIC framework} does not provide any built-in mechanism to 
+handle task deadlines, we decided to use a one-to-one mapping between
+tasks and watchdogs. This way, each watchdog is responsible for monitoring
+the deadline of a single task, making the implementation simpler and more
+straightforward. \\
+Besides the simplicity of implementation, this approach was chosen to avoid the 
+runtime cost of managing a pool of deadlines and 
+\texttt{deadline\_protected\_object}s at each deadline check.  
+In fact, the alternative scenario of having a single watchdog
+monitoring multiple tasks would require to identify over a pool of deadlines, at
+each deadline check, the earliest next deadline in order to delay its execution
+accordingly. This operation is needed also every task activation, since it could
+introduce a new earliest deadline. \\
+Even if we could optimize this operation by using an appropriate data structure,
+such as a min-heap, the one-to-one mapping approach, instead, allows to manage
+each watchdog independently, without the need of any search, insert or
+delete operation over a pool of objects. This results in a constant-time
+complexity for each deadline check and task activation, thus reducing
+the runtime overhead, improving the system's responsiveness and reducing
+watchdogs' intereference over system tasks. \\
+Moreover, since the \textit{RTIC framework} requires to declare for each task
+locals and shared resources at compile time, by using a one-to-one mapping we
+can leverage the single responsability principle, enhancing code readability and
+maintanability against a more complex single watchdog implementation. \\
+However, this approach introduces a higher activation cost, since each watchdog
+consists in a task, and as such it has its own activation overhead. This is a
+price that we considered more accettable than the previous described runtime
+cost, since the activation cost is paid only once and does not affect the system 
+responsiveness. \\
+Activation cost is not the only negative aspect of this approach: by having a
+one-to-one mapping, we also introduce a memory overhead, since each watchdog
+task requires its own stack and context. This could be a problem in systems with
+a large number of tasks, where the memory overhead could become significant. In
+our case, given the limited number of tasks in the system, we considered this
+overhead accettable, but we acknowledge that in systems with a larger number of
+tasks, this could become a trade-off to consider carefully against the runtime
+cost of a single watchdog implementation.
+
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
