@@ -57,7 +57,7 @@ highest priority of those tasks which access it.
 It represents a \textit{schedulable} entity in a processing resource. Since we use a
 \textit{Fixed-Priority Scheduling} policy, the server scheduling parameters are
 of type \textit{Fixed\_Priority\_Policy}, which corresponds to regular preemptive
-fixed-priority scheduling, and require a priority value to be specified.
+fixed-priority scheduling, and requires a priority value to be specified.
 
 \subsubsection{Operation}
 It is an abstract representation of a piece of code. There are three types of
@@ -78,10 +78,10 @@ operations:
 \end{itemize}
 
 \subsubsection{Transaction} 
-It represents a modeling unit for interactions of the system. Each transaction
+It represents a modeling unit for concatenations of the system. Each transaction
 is composed of three components:
 \begin{itemize}
-    \item \textit{External\_Events}: a list of events that models interactions
+    \item \textit{External\_Events}: a list of events that models concatenations
     of the system with external devices through interrupts or with hardware
     timing devices. For each external event it is necessary to specify its type,
     such as periodic or sporadic, its period or minimum inter-arrival time, its
@@ -103,22 +103,21 @@ is composed of three components:
 \subsection{MAST Tools}
 \textit{MAST} supports different types of analysis tools. In this subsection, we
 present those used in our system's analysis, while further details
-can be found in the \textit{MAST description} \cite{restrictionsMast}.
+can be found in the \textit{MAST description} \cite{descriptionMAST}.
 \begin{itemize}
     \item \textit{Classic RM Analysis}: the classic exact response-time analysis
     for single-processor fixed-priority systems.
     Although the name might suggest support only for \textit{Rate Monotonic}
-    scheme, it also covers \textit{Deadline Monotonic} as well, which is the one
-    adopted in our system; 
+    scheme, it also covers \textit{Deadline Monotonic} as well; 
     \item \textit{Offeset-based Approximate with Precedence Relation Analysis}: 
     response-time analysis that improves the holistic analysis by taking into
     account that tasks of the same transaction are not independent, through the
     use of offsets. Those precedence relations, together with tasks priorities,
-    provide a tighter estimation of the response times comparing to other tools.
+    provide a tighter estimation of the response times comparing to other tools. 
 \end{itemize}
 
 Each analysis tool, as described in the \textit{MAST restrictions}
-\cite{restrictionsMast}, is subject to certain limitations regarding the
+\cite{restrictionsMAST}, is subject to certain limitations regarding the
 expression power of the model, particularly in how transactions can be
 constructed. The most relevant are: 
 \begin{itemize}
