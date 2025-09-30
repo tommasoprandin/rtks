@@ -6,12 +6,11 @@ The analysis was performed by modeling the system through a
 \textit{MAST} model, which was then analyzed using the \textit{MAST} tool to verify
 the timing properties and to analyze the system under different workloads.
 
-Priority assignment was done according to the \textit{Deadline Monotonic}
-scheme, which assigns higher priorities to tasks with shorter deadlines. This
-choice comes from the fact that tasks in the system do not have implicit
-deadlines and, as theory proves, \textit{Deadline Monotonic} performs better
-than \textit{Rate Monotonic} in such cases, as it can provide feasible schedules
-where \textit{Rate Monotonic} fails.
+Priority assignment was done by ensuring that tasks with shorter relative
+deadlines are given higher priorities, as in the \textit{Deadline Monotonic}
+scheme, while also accounting for task relationships, since tasks in the system
+do not have implicit deadlines and presents some precedence relationships
+(further details can be found in the \textit{Integration Report} \cite{Integration}).
 
 The evaluation of the system under different utilization levels was facilitated
 by the use of the \textit{Small Whetstone} algorithm to simulate computational
@@ -24,10 +23,12 @@ model, without the need for new execution-time measurements.
 \subsection{Holistic Analysis}
 
 We first conducted a holistic analysis, considering all the tasks as
-independent. As a consequence, this analysis is pessimistic, since it does not
-take into account any relationship between tasks. System feasibility is
-therefore evaluated based on the worst-case scenario at the critical instant, i.e.,
-when all tasks are released simultaneously (not a realistic and possible case).
+independent. As a consequence, this analysis is an over-approximation of the
+worst case, since it does not take into account any relationship between tasks,
+assuming a case that cannot occur in a real execution. \\
+System feasibility is therefore evaluated based on the worst-case scenario at
+the critical instant, i.e., when all tasks are released simultaneously (not a
+realistic and possible case). 
 
 The analysis was performed using the \textit{Classic RM Analysis} tool in
 \textit{MAST}, which implements the classic exact response-time analysis for
@@ -102,7 +103,7 @@ of jitter and blocking times for each transaction are the following:
   \label{tab:holistic-analysis-rust}
 \end{table}
 Based on these results, since the smallest slack available was 2006.3\% for the 
-\texttt{rp\_transaction}, we increased the workloads with a factor of 20 to
+\texttt{rp\_transaction}, we increased the workloads by a factor of 20 to
 reduce it significantly. New results are reported in Table
 [\ref{tab:holistic-analysis-rust-x20}]. 
 \begin{table}[H]
@@ -182,8 +183,8 @@ updated results are reported in Table [\ref{tab:holistic-analysis-rust-x1.35}].
 
 Even though the \texttt{ees\_transaction} has still a large available slack,
 since it does not perform any Whetstone computation, it is not possible to 
-increase the utilization of the system any further. Besides that, even an
-eventual increase of the execution time of \texttt{ees\_transaction} would
+increase the utilization of the system any further. Besides that, even a
+possible increase of the execution time of \texttt{ees\_transaction} would 
 not affect significantly the utilization of the system. In conclusion, under
 holistic analysis, we achieved 60.68\% system utilization.
 
@@ -209,9 +210,11 @@ holistic analysis, we achieved 60.68\% system utilization.
 \end{table}
 
 Based on these results, since the smallest available slack was 8808.2\% for the 
-\texttt{rp\_transaction}, we increased the workloads with a factor of 90 to
-reduce it significantly. The updated results are reported in Table
-[\ref{tab:holistic-analysis-ada-x88}].  
+\texttt{rp\_transaction}, we increased the workloads by a factor of 90 to
+reduce it significantly. We chose a factor of 90 instead of 88 by the fact that
+the \textit{Small Whetstone} operation represent only a part of the transaction
+rather than the entire \texttt{rp\_transaction}. The updated results are
+reported in Table [\ref{tab:holistic-analysis-ada-x88}].  
 
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
@@ -234,7 +237,7 @@ reduce it significantly. The updated results are reported in Table
   \label{tab:holistic-analysis-ada-x88}
 \end{table}
 
-Again, we can notice how the blocking times have not changed, since protected
+Again, we notice how the blocking times have not changed, since protected
 operations remain the same. While we have achieved a small slack for the
 \texttt{rp\_transaction} (1.56\%), the other two transactions that involve
 Whetstone computations still have large available slacks. Based on these
@@ -312,11 +315,11 @@ Since the hyperperiod of the system is 15 seconds, we have 15
 \texttt{rp\_transaction}s plus the \texttt{ees\_transaction}, resulting in a
 total of 16 transactions.
 
-If the offset-based analysis helps in reducing the interference between tasks,
+If the offset-based analysis helps reduce the interference between tasks,
 we are unable to increase the workloads beyond what was achieved with the
 holistic analysis. The reason is that the critical instant faced in the holistic
 analysis is similar to the one faced with the offset-based analysis in the 12th
-period, when the \texttt{regualr\_producer} activates both the
+period, when the \texttt{regular\_producer} activates both the
 \texttt{on\_call\_producer} and the\\ \texttt{activation\_log\_reader}.  
 A graphical representation of this scenario is shown in Figure
 [\ref{fig:offset-based-holistic}], where we omitted the inclusion of
@@ -371,7 +374,7 @@ higher priority than both the tasks (this is not true for the \\
 \texttt{activation\_log}, thanks to the \texttt{Stack Resource Protocol}), we
 must account for the cost of preemption (i.e., the context 
 switch) plus the WCET of \texttt{ees\_transaction}. \\
-We ends up with the following available times for the two systems:
+We end up with the following available times for the two systems:
 \begin{itemize}
   \item Rust System: 0.5 - 0.0005 - 0.018E-06 - (0.018E-06 + 13.486E-06) =
   0.49948648 seconds;
@@ -387,20 +390,18 @@ The problem can now be expressed as the following linear optimization problem:
   \text{Subject to } & x \leq \text{T} \\
                       & y \leq \text{T} \\
                       & x + y \leq \text{T} \\
-                      & x, y \geq 0
+                      & x \geq \text{WCET \texttt{on\_call\_producer} with worklaod 1} \\
+                      & y \geq \text{WCET \texttt{activation\_log\_reader} with workload 1} 
 \end{align*}
-For both the systems, the solution to this linear optimization is $x = 0$ and $y
-= T$, meaning that the \texttt{activation\_log\_reader} task should occupy the
-entire available time slot. Since this is an unrealistic scenario, we chose to
-assign the minimum workload possible to the \texttt{on\_call\_producer}, i.e., a
-workload equal to a single Whetstone operation. 
-The remaining time in $T$ is then assigned to the
-\texttt{activation\_log\_reader}, resulting in 0.49948648 - 0.00004456 =
-0.49944192 seconds for the Rust system and 0.49805977 - 0.00002079 =
-0.49785182 seconds for the Ada system. Here, 0.00004456 and 0.00002079 correspond
-to the WCETs of the \texttt{on\_call\_producer} in \textit{Rust} and \textit{Ada},
-respectively, which include not only the execution of a single Whetstone
-operation but also all the other operations that the job must normally perform. 
+For both systems, the solution to this linear optimization is \\
+$x$ = \textit{\texttt{on\_call\_producer} with worklaod 1}, with $y$ that fills
+the remaining available time slot in $T$, resulting in 0.49948648 - 0.00004456 =
+0.49944192 seconds for the \textit{Rust system} and 0.49805977 - 0.00002079 =
+0.49785182 seconds for the \textit{Ada system}. Here, 0.00004456 and 0.00002079
+correspond to the WCETs of the \texttt{on\_call\_producer} in \textit{Rust} and
+\textit{Ada}, respectively, which include not only the execution of a single
+Whetstone operation but also all the other operations that the job must normally
+perform.  
 
 With these updated workloads, the offset-based model, with the \textit{Offset-Based
 Analysis with Precedence Relation} tool in \textit{MAST}, yields the following
