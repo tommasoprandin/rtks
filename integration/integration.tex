@@ -217,7 +217,7 @@ can leverage the single responsability principle, enhancing code readability and
 maintanability against a more complex single watchdog implementation. \\
 However, this approach introduces a higher activation cost, since each watchdog
 consists in a task, and as such it has its own activation overhead. This is a
-price that we considered more accettable than the previous described runtime
+price that we considered more acceptable than the previous described runtime
 cost, since the activation cost is paid only once and does not affect the system 
 responsiveness. \\
 Activation cost is not the only negative aspect of this approach: by having a
@@ -225,10 +225,79 @@ one-to-one mapping, we also introduce a memory overhead, since each watchdog
 task requires its own stack and context. This could be a problem in systems with
 a large number of tasks, where the memory overhead could become significant. In
 our case, given the limited number of tasks in the system, we considered this
-overhead accettable, but we acknowledge that in systems with a larger number of
+overhead acceptable, but we acknowledge that in systems with a larger number of
 tasks, this could become a trade-off to consider carefully against the runtime
 cost of a single watchdog implementation.
 
+\section{How we assign priorities in the system?}
+The priority asssignment in our system is intended to enable high system
+utilization while ensuring feasibility, i.e., all tasks meet their deadlines on
+time.
+
+\begin{table}[H]
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{Task} & \textbf{Type} & \textbf{Period/Min-InterArr (ms)} &
+      \textbf{Relative Deadline (ms)} \\ 
+      \midrule
+        Activation Log Reader & Sporadic & 3000 & 1000 \\
+        On Call Producer & Sporadic & 5000 & 800 \\
+        Regular Producer & Periodic & 1000 & 500 \\
+        External Event Server & Sporadic (interrupt) & 5000 & 100 \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Task Table}
+  \label{tab:task-table}
+\end{table}
+
+The system consists of four tasks: \texttt{regular\_producer}, \\
+\texttt{on\_call\_producer}, \texttt{activation\_log\_reader} and \\
+\texttt{external\_event\_server} (watchdogs are not included in this priority
+analysis, since they are always assigned the highest priority for reasons
+already discussed in the \textit{Technical Report}, section 5
+\cite{TechnicalReport}). \\ 
+While \texttt{external\_event\_server} is independent from the other tasks, the
+other three are caractherized by precedence relationships. Specifically,
+\texttt{regular\_producer} is responsible for activating both
+\texttt{activation\_log\_reader} and \texttt{on\_call\_producer}, based on
+different activation criteria. \\
+According to these relationships and on the task time parameters reported in Table
+[\ref{tab:task-table}], we can derive the following constraints:
+\begin{itemize}
+  \item \texttt{external\_event\_server} must have the highest priority upon all
+  the other forementioned tasks. This is because it has the shortest relative
+  deadline (100 ms) and it is a sporadic task. Therefore, it must be able to
+  respond quickly when activated, preempting other tasks if necessary. Since it
+  is independent from the other tasks, the underlying principle is the same as
+  for \textit{Deadline Monotonic} scheme; 
+  \item \texttt{regular\_producer} must have a higher priority than both
+  \texttt{activation\_log\_reader} and \texttt{on\_call\_producer}. This is
+  because it activates both tasks and has a shorter relative deadline (500 ms)
+  than both (1000 ms and 800 ms, respectively). Therefore, it must be able to complete its
+  execution before the other two tasks are dispatched;
+  \item \texttt{on\_call\_producer} must have a higher priority than \\
+  \texttt{activation\_log\_reader}. This is because it has a shorter relative
+  deadline (800 ms) than \texttt{activation\_log\_reader} (1000 ms). Therefore,
+  it must be able to complete its execution before
+  \texttt{activation\_log\_reader} is dispatched. It's important to note that
+  this constraint is valid only because there is a \texttt{regular\_producer}
+  job activating both tasks (as described in the \textit{Technical Report},
+  section 7.2 \cite{TechnicalReport}), otherwise would just be sufficient to
+  have a priority lower than \texttt{regular\_producer}'s one since there would
+  not be any interference between the two tasks.
+\end{itemize}
+The principle underlying these constraints is to ensure that tasks with shorter
+relative deadlines are given higher priorities (as in \textit{Deadline Monotonic}
+scheme), while also taking into account the relationships between tasks. \\
+Based on these constraints, we assigned the following priorities:
+\begin{itemize}
+  \item \texttt{external\_event\_server}: Priority 11 (highest);
+  \item \texttt{regular\_producer}: Priority 7;
+  \item \texttt{on\_call\_producer}: Priority 5;
+  \item \texttt{activation\_log\_reader}: Priority 3 (lowest).
+\end{itemize}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
