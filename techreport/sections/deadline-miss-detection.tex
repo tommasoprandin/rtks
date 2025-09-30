@@ -5,7 +5,7 @@ Table [\ref{tab:tasks-list}].
 
 In order to detect a deadline miss, since the 
 \textit{RTIC} framework does not provide any built-in mechanism for this, for
-each task we implemented a watchdog task responsible for monitoring jobs
+each task we implemented a watchdog task responsible for monitoring job
 deadlines. 
 
 To achieve the desired behavior, i.e., a watchdog declares a deadline miss if
@@ -25,7 +25,7 @@ monitored job while it is updating the flag, avoiding undesired deadline miss
 detections.
 
 Additionally, the \texttt{deadline\_protected\_object} struct contains an
-activations counter, which allows for finer control over the requests to clear
+activation counter, which allows for finer control over the requests to clear
 deadline misses, allowing stale requests to be ignored. \\
 The watchdog tasks have the highest priority in the system: this ensures that as
 soon as a deadline is missed, the corresponding watchdog will be scheduled to
@@ -45,7 +45,7 @@ different types of watchdogs:
     \texttt{deadline\_miss\_detected}. This method checks the flag and, if it is
     still false, it declares a deadline miss. Then, the watchdog increments the
     next deadline by the period of the associated task, and it loops again;
-    \item \texttt{sporadic\_deadline\_watchdog}: this watchdog waits on a
+    \item \texttt{sporadic\_deadline\_watchdog}: this watchdog waits on an
     activation signal that notices it of a new activation of the monitored job. 
     The watchdog then calculates the next deadline by adding the relative
     deadline of the associated task with the activation time of the monitored
