@@ -26,17 +26,29 @@ except by embedding it directly within the \texttt{deposit} call on the
 \texttt{Request\_Buffer}. This limitation stems from the fact that any access to
 a shared resource must be explicitly declared in the task’s shared resources
 and, consequently, it is not possible for a task to provide an interface through
-which other tasks may interact with it. The management of shared resources
-always requires acquiring a lock when accessing them, which can introduce
-unnecessary blocking times even in cases where the relationships between tasks
-exclude the possibility of simultaneous access. Once again, this enforced
-structure represents the trade-off between flexibility and the strong safety
-guarantees provided by \textit{Rust}.
+which other tasks may interact with. The management of shared resources in
+\textit{RTIC} always requires acquiring a lock when accessing them: even if
+\textit{Stack Resource Policy (SRP)} is lock-free, the lock acquisition is used
+to declare critical sections in which tasks can access the acquired shared
+resources and invoke on them their methods. In contrast, \textit{Ada Ravenscar
+Profile} achieves the same goal through protected objects, which automatically
+manage resource access without requiring explicit lock acquisition to delimit
+critical sections. Once again, this enforced structure represents the trade-off
+between flexibility and the strong safety guarantees provided by \textit{Rust}. 
+Moreover, the lack of guard mechanisms for shared resources in \textit{RTIC}
+may lead to potential runtime errors if not properly managed by developers. This
+requires designing the system carefully, with resources that may need to notify
+interested tasks upon status changes. In such cases, the responsibility is
+shifted to developers, forcing resources to be aware of the tasks that depend on
+them and thereby increasing the coupling between resources and tasks. By contrast,
+\textit{Ada Ravenscar Profile} inherently prevents such situations through its
+\textit{entry} mechanism, providing more suitable abstractions for managing 
+shared resources. 
 
 Unlike the \textit{Ada Ravenscar Profile}, on the subject of deadline miss
-detections, the framework reveals a significant limitation by providing no
-built-in support for handling such events, thus it leaves the responsibility for
-handling timing violations entirely to the developers.
+detections, the \textit{RTIC} framework reveals a significant limitation by
+providing no built-in support for handling such events, thus it leaves the
+responsibility for handling timing violations entirely to the developers.
 
 Overall, we consider the \textit{RTIC} framework to be a valid, flexible and
 performant option for the development of real-time systems, with a generated
