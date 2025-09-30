@@ -4,11 +4,15 @@ Starting from the demo application provided by the \textit{Ada} guide
 \cite{burnsGuideUseAda2004}, we implemented an equivalent system
 fully written in \textit{Rust}. 
 
-Unlike \textit{Ada}, which provides a reference runtime implementation, \textit{Rust} delegates this responsibility to third-party developers. This approach offers several advantages: it promotes flexibility and ecosystem development by encouraging competitive runtime development and enabling implementations tailored to specific use cases. However, this approach also causes ecosystem fragmentation
-and could also result in lower "quality" of the runtimes, considering that a single
-reference implementation will naturally tend to concentrate resources towards its
-development from all the actors interested in its usage or analysis, instead of
-dispersing them across multiple projects. 
+Unlike \textit{Ada}, which provides a reference runtime implementation,
+\textit{Rust} delegates this responsibility to third-party developers. This
+approach offers several advantages: it promotes flexibility and ecosystem
+development by encouraging competitive runtime development and enabling
+implementations tailored to specific use cases. However, this approach also
+causes ecosystem fragmentation and could also result in lower "quality" of the
+runtimes, considering that a single reference implementation will naturally tend
+to concentrate resources towards its development from all the actors interested
+in its usage or analysis, instead of dispersing them across multiple projects. 
 
 Thus, when designing and implementing a real-time system in \textit{Rust}, some
 effort must be spent in order to identify and integrate the most appropriate
