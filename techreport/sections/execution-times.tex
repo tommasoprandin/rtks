@@ -2,13 +2,13 @@
 
 \subsection{Rust}
 
-Obtaining the \textit{Worst-Case Execution Times} for every operation in the
+Obtaining the \textit{Worst-Case Execution Times} for every operation identified in the analysis of the
 system is a crucial step in order to perform response-time analysis. 
 
 We decided to leverage the \textit{Data Watchpoint and Trace Unit (DWT)}
 \cite[Chapter~9]{armlimitedARMCortexM42009}. \textit{DWT} supports multiple
 functionalities such as: debugger hardware watchpoints, multiple comparators,
-and cycle counters. For our purposes, the latter one was sufficient. 
+and cycle counters. For our purposes, the latter was sufficient. 
 
 In particular, the \textit{DWT} peripheral holds a cycle counter that can be
 read from the \texttt{DWT\_CYCCNT} register, which in turn can be used to
@@ -62,7 +62,7 @@ during normal operation, improving performance and code size.
 
 The runtime does not provide a \textit{task time} like Ada Ravenscar, hence, to
 obtain the desired WCET, we had to manually raise the priority of the task under
-analysis in order to prevent any interference that could invalidate our times.
+analysis in order to prevent any interference that could invalidate our time measurements.
 This is not a very clean solution, but implementing a proper task execution time
 would require non-trivial modifications to the RTIC runtime, which were
 considered out of the scope of the work and too time-consuming. Nonetheless, the
@@ -75,7 +75,7 @@ then panic to stop execution.
 
 \subsection{Ada}
 
-Concerning the Ada system, we have re-utilized the instrumentation implemented
+For the Ada system, we have re-utilized the instrumentation implemented
 by J. Hu and A. Gobbo in their work \cite{huJiayihuSRT2024}, aimed to perform
 response-time analysis over the \textit{Ada} system model, as shown in the
 original paper \cite{burnsGuideUseAda2004}.
@@ -92,6 +92,7 @@ in I/O backends and runtime overheads, since RTIC heavily relies on hardware
 features specific to ARM Cortex architecture, to compiler choices, and different
 math libraries. 
 
+NOTE: How do we explain the difference between rust and ada in execution whetstone? I think we should say that we used a very basic math library for Rust, only meant to be used as a fallback (libm) and not yet stable even. We used it to avoid including an external C library which would have complicated the compilation phase. While Ada uses a more optimized math library. I don't know if you have better ideas.
 \subsubsection{Activation Log Reader}
 \begin{table}[H]
   \centering

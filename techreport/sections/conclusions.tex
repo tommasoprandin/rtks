@@ -29,8 +29,8 @@ and, consequently, it is not possible for a task to provide an interface through
 which other tasks may interact with. The management of shared resources in
 \textit{RTIC} always requires acquiring a lock when accessing them: even if
 \textit{Stack Resource Policy (SRP)} is lock-free, the lock acquisition is used
-to declare critical sections in which tasks can access the acquired shared
-resources and invoke on them their methods. In contrast, \textit{Ada Ravenscar
+to delimit critical sections in which tasks can access the acquired shared
+resources and invoke on them their methods, so that the runtime can perform the required analysis as explained in section \ref{subsec:rtic}. In contrast, \textit{Ada Ravenscar
 Profile} achieves the same goal through protected objects, which automatically
 manage resource access without requiring explicit lock acquisition to delimit
 critical sections. Once again, this enforced structure represents the trade-off

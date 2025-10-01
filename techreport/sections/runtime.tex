@@ -16,13 +16,13 @@ in its usage or analysis, instead of dispersing them across multiple projects.
 
 Thus, when designing and implementing a real-time system in \textit{Rust}, some
 effort must be spent in order to identify and integrate the most appropriate
-runtime components for the system, having care to select compatible components
-that can work in harmony together. In our case this means choosing a
+runtime components for the system, paying attention to select compatible components
+that can work in harmony together i.e. with compatible APIs and functioning in the chosen runtime environment. In our case this means choosing a
 \textit{concurrency runtime} that provides the task abstraction and scheduling
 primitives, a \textit{logging framework} and a \textit{Hardware Abstraction
 Layer} that provides higher-level abstractions over the system hardware. 
 
-\subsection{RTIC}
+\subsection{RTIC} \label{subsec:rtic}
 
 As for the \textit{concurrency runtime}, we have decided to use the
 \textit{RTIC} framework \cite{RticrsRtic2025}. It is generally considered to be
@@ -38,16 +38,16 @@ access management \cite{bakerStackbasedSchedulingRealtime1991}, with
 both for performance and especially for amenability to response-time analysis.
 Some of those properties are: 
 \begin{itemize}
-  \item Preemptive deadlock and race-free scheduling;
-  \item Tasks execute on a single shared stack;
-  \item Tasks run-to-completion with wait free access to shared resources;
-  \item Bounded priority inversion by a single critical section.
+  \item Bounded priority inversion blockage by the longest critical section of a lower priority job;
+  \item Absence of circular-wait deadlocks;
+  \item Tasks may utilize a single shared stack;
+  \item Tasks are guaranteed to have wait-free access to all the resources they need after release;
 \end{itemize}
 Those come with the following set of requirements:
 \begin{itemize}
   \item Tasks are associated with static \textit{pre-emption levels};
   \item Tasks execute on a single core;
-  \item Tasks do not voluntarily suspend (run-to-completion);
+  \item No non-preemptable resources are held across blocking or yield points;
   \item Resource must be claimed and released in LIFO order.
 \end{itemize}
 The motives behind these requirements and the proof of the properties are
@@ -60,7 +60,7 @@ ceiling $\pi$ for each resource. The static resource ceiling $\pi(r)$ reflects
 the maximum static priority of any task that accesses the resource $r$. This is
 the reason why, despite its excellent properties, is not used in general-purpose
 OS: it requires the resource dependency graph to be known statically, which is
-generally not possible. 
+generally not possible. In addition to this, the protocol has a runtime cost associated to every resource access and release, that involves updating the current system ceiling $\pi_s(t)$; and also at every job release to compare its priority against the system ceiling.
 
 \textit{FPS} is a very simple scheduling policy: every task is statically given
 a fixed priority value (values must have an order), and all jobs released will
@@ -71,7 +71,7 @@ The key idea of \textit{RTIC} is to use the native features provided by the
 interrupt engine of ARM microcontrollers (\textit{NVIC}
 \cite{armlimitedARMCortexM42009}) to implement these two protocols, obtaining a
 \textit{hardware-accelerated runtime} suitable for real-time systems, with
-minimal overhead.  
+minimal overhead. against
 
 In the case of the ARM Cortex-M architecture, each interrupt vector entry $v_i$
 is associated an \textit{Interrupt Service Routine} $isr_i$, a static priority
@@ -108,19 +108,15 @@ between logical tasks and actual hardware is quite straightforward:
 \end{itemize}
 The mapping between tasks and ISR, and resources to their static ceilings is
 computed at compile-time by \textit{RTIC} using \textit{procedural macros}, thus
-is has no impact on the performance at runtime. 
+it has no impact on the performance at runtime. 
+
 
 Actually, \textit{RTIC} maps each task priority level to an ISR at the
 corresponding priority. Each ISR runs an \textit{asynchronous executor} that
 handles tasks wrapped as \textit{async} functions assigned to that priority
 level. This allows for \textit{async/await} style programming in tasks, lifting
 the run-to-completion requirement for them, since each section of code between
-two yield points can be seen as an individual task. The compiler will reject any
-attempt to await while holding a resource (not doing so would break the strict
-LIFO requirement on resource usage under SRP) \cite{RticrsRtic2025}. This in
-turn gives much better developer ergonomics, especially for managing inter-task
-communication and for handling interaction with the hardware. 
-
+two yield points can be seen as an individual task. The compiler enforces that no \textit{await} operations can occur while holding a resource, preventing violations of the strict LIFO requirement on resource usage mandated by SRP \cite{RticrsRtic2025}. However, this compile-time guarantee only applies to statically analyzed code; externally compiled procedures can bypass this verification. The support for this style of programming simplifies the development of complex tasks by automatically managing state transitions between suspension points, eliminating the need for manual state machine implementations when handling multi-stage operations such as inter-task communication and hardware interactions.
 \subsection{Defmt}
 
 The second piece of the system is \textit{defmt} \cite{IntroductionDefmtBook}:

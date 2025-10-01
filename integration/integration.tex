@@ -199,10 +199,8 @@ straightforward. \\
 Besides the simplicity of implementation, this approach was chosen to avoid the 
 runtime cost of managing a pool of deadlines and 
 \texttt{deadline\_protected\_object}s at each deadline check.  
-In fact, the alternative scenario of having a single watchdog
-monitoring multiple tasks would require to identify over a pool of deadlines, at
-each deadline check, the earliest next deadline in order to delay its execution
-accordingly. This operation is needed also every task activation, since it could
+In fact, an alternative implementation would require identifying the earliest next deadline among all the monitored ones at each deadline check, in order to delay its execution
+accordingly. This operation is also needed at every task activation, since it could
 introduce a new earliest deadline. \\
 Even if we could optimize this operation by using an appropriate data structure,
 such as a min-heap, the one-to-one mapping approach, instead, allows to manage
@@ -210,11 +208,11 @@ each watchdog independently, without the need of any search, insert or
 delete operation over a pool of objects. This results in a constant-time
 complexity for each deadline check and task activation, thus reducing
 the runtime overhead, improving the system's responsiveness and reducing
-watchdogs' intereference over system tasks. \\
-Moreover, since the \textit{RTIC framework} requires to declare for each task
+watchdogs' interference over system tasks. \\
+Moreover, since the \textit{RTIC framework} requires declaring for each task
 locals and shared resources at compile time, by using a one-to-one mapping we
-can leverage the single responsability principle, enhancing code readability and
-maintanability against a more complex single watchdog implementation. \\
+can leverage the single responsibility principle, enhancing code readability and
+maintainability against a more complex single watchdog implementation. \\
 However, this approach introduces a higher activation cost, since each watchdog
 consists in a task, and as such it has its own activation overhead. This is a
 price that we considered more acceptable than the previous described runtime
@@ -222,15 +220,16 @@ cost, since the activation cost is paid only once and does not affect the system
 responsiveness. \\
 Activation cost is not the only negative aspect of this approach: by having a
 one-to-one mapping, we also introduce a memory overhead, since each watchdog
-task requires its own stack and context. This could be a problem in systems with
-a large number of tasks, where the memory overhead could become significant. In
+task requires its own stack frame and context. This could be a problem in systems with
+many tasks, where the memory overhead could become significant. In
 our case, given the limited number of tasks in the system, we considered this
 overhead acceptable, but we acknowledge that in systems with a larger number of
 tasks, this could become a trade-off to consider carefully against the runtime
 cost of a single watchdog implementation.
+NOTE: In my opinion this is not a big problematic: by using SRP the stack is shared among tasks and the overhead of local variables is negligible since instead of having one local per task we would need N locals for a single task. Obviously there is the cost of the async task executors space to consider, I believe it is more significant compared to stack space.
 
 \section{How we assign priorities in the system?}
-The priority asssignment in our system is intended to enable high system
+The priority assignment in our system is intended to enable high system
 utilization while ensuring feasibility, i.e., all tasks meet their deadlines on
 time.
 
@@ -258,8 +257,8 @@ The system consists of four tasks: \texttt{regular\_producer}, \\
 analysis, since they are always assigned the highest priority for reasons
 already discussed in the \textit{Technical Report}, section 5
 \cite{TechnicalReport}). \\ 
-While \texttt{external\_event\_server} is independent from the other tasks, the
-other three are caractherized by precedence relationships. Specifically,
+While \texttt{external\_event\_server} is independent of the other tasks, the
+other three are characterized by precedence relationships. Specifically,
 \texttt{regular\_producer} is responsible for activating both
 \texttt{activation\_log\_reader} and \texttt{on\_call\_producer}, based on
 different activation criteria. \\
@@ -270,7 +269,7 @@ According to these relationships and on the task time parameters reported in Tab
   the other forementioned tasks. This is because it has the shortest relative
   deadline (100 ms) and it is a sporadic task. Therefore, it must be able to
   respond quickly when activated, preempting other tasks if necessary. Since it
-  is independent from the other tasks, the underlying principle is the same as
+  is independent of the other tasks, the underlying principle is the same as
   for \textit{Deadline Monotonic} scheme; 
   \item \texttt{regular\_producer} must have a higher priority than both
   \texttt{activation\_log\_reader} and \texttt{on\_call\_producer}. This is
@@ -298,6 +297,8 @@ Based on these constraints, we assigned the following priorities:
   \item \texttt{on\_call\_producer}: Priority 5;
   \item \texttt{activation\_log\_reader}: Priority 3 (lowest).
 \end{itemize}
+
+NOTE: I don't know if it's true that RP must be able to complete execution before tasks are dispatched. It may still be feasible, but in order to maximize utilization I agree it should be the highest priority.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
