@@ -82,14 +82,9 @@ calls, with the aim of testing the system under a wide range of loads. \\
 The Whetstone benchmark provides a configurable workload parameter that directly 
 controls the number of iterations performed by the procedure. Each iteration 
 executes a standardized mix of computational operations (floating-point arithmetic, 
-trigonometric functions, loops, and conditional statements), and the benchmark's 
-performance is measured in \textit{Whetstone Instructions Per Second} (WIPS). 
-A \textit{Whetstone instruction} represents a normalized unit of computational 
-work as defined by the original benchmark \cite{curnowSyntheticBenchmark1976}, 
-used to abstract the specific hardware implementation and provide a 
-machine-independent measure of computational load that is representative of
-typical scientific workloads. One kilo-whetstone corresponds to 1000 such
-normalized computational operations. 
+trigonometric functions, loops, and conditional statements).
+The combination of those types of instructions was obtained from statistical analysis of common scientific programs at the time of writing of the original paper \cite{curnowSyntheticBenchmark1976}. In this way, they could obtain a computational workload that was representative for benchmarking.
+We have ported the Ada implementation provided \cite{huJiayihuSRT2024} in the original example to Rust, trying to follow as much as possible the original code structure.
 By scaling this parameter, we can adjust the worst-case execution 
 time (WCET) of each task, creating different system utilization 
 levels. For instance, doubling the workload parameter approximately doubles the 

@@ -94,13 +94,11 @@ in I/O backends and runtime overheads, since RTIC heavily relies on hardware
 features specific to ARM Cortex architecture, to compiler choices, and different
 math libraries. 
 
-NOTE: How do we explain the difference between rust and ada in execution
-whetstone? I think we should say that we used a very basic math library for
-Rust, only meant to be used as a fallback (libm) and not yet stable even. We
-used it to avoid including an external C library which would have complicated
-the compilation phase. While Ada uses a more optimized math library. I don't
-know if you have better ideas
- 
+In particular, we have observed a very large difference in the execution times of the Whetstone procedure in favor of the Ada implementation. For the Rust implementation we have used a math library (libm), which is purely written in Rust and meant to become the reference implementation for the Rust compiler. At the current development stage though, it is not very optimized and more intended to be used as a fallback, rather than the actual library.
+On the other hand Ada (in its GNAT distribution) has a more mature and optimized implementation, which has been tested on the field for many years now.
+
+This may partially explain the large gap in execution times between the two systems.
+
 \subsubsection{Activation Log Reader}
 \begin{table}[H]
   \centering
