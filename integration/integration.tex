@@ -259,7 +259,7 @@ already discussed in the \textit{Technical Report}, section 5
 \cite{TechnicalReport}). \\ 
 While \texttt{external\_event\_server} is independent of the other tasks, the
 other three are characterized by precedence relationships. Specifically,
-\texttt{regular\_producer} is responsible for activating both
+\texttt{regular\_producer} is responsible for activating both \\
 \texttt{activation\_log\_reader} and \texttt{on\_call\_producer}, based on
 different activation criteria. \\
 According to these relationships and on the task time parameters reported in Table
@@ -274,10 +274,10 @@ According to these relationships and on the task time parameters reported in Tab
   \item \texttt{regular\_producer} must have a higher priority than both
   \texttt{activation\_log\_reader} and \texttt{on\_call\_producer}. This is
   because it activates both tasks and has a shorter relative deadline (500 ms)
-  than both (1000 ms and 800 ms, respectively). Therefore, it must be able to complete its
-  execution before the other two tasks are dispatched, so that the activated
-  tasks can be scheduled according to their own deadlines rather than being
-  constrained by the \texttt{regular\_producer}'s deadline;
+  than both (1000 ms and 800 ms, respectively). Therefore, it must be able to
+  complete its execution before the other two tasks are dispatched, so that the
+  activated tasks can be scheduled according to their own deadlines rather than
+  being constrained by the \texttt{regular\_producer}'s deadline;
   \item \texttt{on\_call\_producer} must have a higher priority than \\
   \texttt{activation\_log\_reader}. This is because it has a shorter relative
   deadline (800 ms) than \texttt{activation\_log\_reader} (1000 ms). Therefore,
