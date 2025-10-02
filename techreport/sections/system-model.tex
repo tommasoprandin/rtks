@@ -87,8 +87,9 @@ performance is measured in \textit{Whetstone Instructions Per Second} (WIPS).
 A \textit{Whetstone instruction} represents a normalized unit of computational 
 work as defined by the original benchmark \cite{curnowSyntheticBenchmark1976}, 
 used to abstract the specific hardware implementation and provide a 
-machine-independent measure of computational load that is representative of typical scientific workloads. One kilo-whetstone corresponds 
-to 1000 such normalized computational operations.
+machine-independent measure of computational load that is representative of
+typical scientific workloads. One kilo-whetstone corresponds to 1000 such
+normalized computational operations. 
 By scaling this parameter, we can adjust the worst-case execution 
 time (WCET) of each task, creating different system utilization 
 levels. For instance, doubling the workload parameter approximately doubles the 
@@ -136,12 +137,13 @@ activation.
 
 \subsubsection{Deadline Watchdogs}
 
-In the Rust system there is no support in the runtime for the detection of tasks' deadline misses.
-For this reason we had to manually associate to every task in the system there a watchdog monitor task that checks for
-deadline overruns. It has the maximum priority to prevent interference. It
-maintains the number of deadline misses and whenever it detects one 
-it prints a warning message (see section \ref{sec:DeadlineMissDetection} for
-further details). \\
+In the Rust system there is no support in the runtime for the detection of
+tasks' deadline misses. 
+For this reason, we had to manually associate each task in the system with a
+watchdog monitor task responsible for checking deadline overruns. It has the
+maximum priority to prevent interference. It maintains the number of deadline
+misses and whenever it detects one it prints a warning message (see section
+\ref{sec:DeadlineMissDetection} for further details). \\
 
 \noindent Figure [\ref{fig:system-architecture}] shows a high-level view of the system
 architecture 

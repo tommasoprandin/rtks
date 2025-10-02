@@ -199,9 +199,10 @@ straightforward. \\
 Besides the simplicity of implementation, this approach was chosen to avoid the 
 runtime cost of managing a pool of deadlines and 
 \texttt{deadline\_protected\_object}s at each deadline check.  
-In fact, an alternative implementation would require identifying the earliest next deadline among all the monitored ones at each deadline check, in order to delay its execution
-accordingly. This operation is also needed at every task activation, since it could
-introduce a new earliest deadline. \\
+In fact, an alternative implementation would require identifying the earliest
+next deadline among all the monitored ones at each deadline check, in order to
+delay its execution accordingly. This operation is also needed at every task
+activation, since it could introduce a new earliest deadline. \\
 Even if we could optimize this operation by using an appropriate data structure,
 such as a min-heap, the one-to-one mapping approach, instead, allows to manage
 each watchdog independently, without the need of any search, insert or
@@ -220,13 +221,12 @@ cost, since the activation cost is paid only once and does not affect the system
 responsiveness. \\
 Activation cost is not the only negative aspect of this approach: by having a
 one-to-one mapping, we also introduce a memory overhead, since each watchdog
-task requires its own stack frame and context. This could be a problem in systems with
-many tasks, where the memory overhead could become significant. In
-our case, given the limited number of tasks in the system, we considered this
-overhead acceptable, but we acknowledge that in systems with a larger number of
-tasks, this could become a trade-off to consider carefully against the runtime
-cost of a single watchdog implementation.
-NOTE: In my opinion this is not a big problematic: by using SRP the stack is shared among tasks and the overhead of local variables is negligible since instead of having one local per task we would need N locals for a single task. Obviously there is the cost of the async task executors space to consider, I believe it is more significant compared to stack space.
+task requires its own dedicated space for the asynchronous task executor. This
+could be a problem in systems with many tasks, where the memory overhead could
+become significant. In our case, given the limited number of tasks in the
+system, we considered this overhead acceptable, but we acknowledge that in
+systems with a larger number of tasks, this could become a trade-off to consider
+carefully against the runtime cost of a single watchdog implementation.
 
 \section{How we assign priorities in the system?}
 The priority assignment in our system is intended to enable high system
@@ -275,7 +275,9 @@ According to these relationships and on the task time parameters reported in Tab
   \texttt{activation\_log\_reader} and \texttt{on\_call\_producer}. This is
   because it activates both tasks and has a shorter relative deadline (500 ms)
   than both (1000 ms and 800 ms, respectively). Therefore, it must be able to complete its
-  execution before the other two tasks are dispatched;
+  execution before the other two tasks are dispatched, so that the activated
+  tasks can be scheduled according to their own deadlines rather than being
+  constrained by the \texttt{regular\_producer}'s deadline;
   \item \texttt{on\_call\_producer} must have a higher priority than \\
   \texttt{activation\_log\_reader}. This is because it has a shorter relative
   deadline (800 ms) than \texttt{activation\_log\_reader} (1000 ms). Therefore,
@@ -297,8 +299,6 @@ Based on these constraints, we assigned the following priorities:
   \item \texttt{on\_call\_producer}: Priority 5;
   \item \texttt{activation\_log\_reader}: Priority 3 (lowest).
 \end{itemize}
-
-NOTE: I don't know if it's true that RP must be able to complete execution before tasks are dispatched. It may still be feasible, but in order to maximize utilization I agree it should be the highest priority.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
