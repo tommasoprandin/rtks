@@ -83,11 +83,19 @@ The Whetstone benchmark provides a configurable workload parameter that directly
 controls the number of iterations performed by the procedure. Each iteration 
 executes a standardized mix of computational operations (floating-point arithmetic, 
 trigonometric functions, loops, and conditional statements).
-The combination of those types of instructions was obtained from statistical analysis of common scientific programs at the time of writing of the original paper \cite{curnowSyntheticBenchmark1976}. In this way, they could obtain a computational workload that was representative for benchmarking.
-We have ported the Ada implementation provided \cite{huJiayihuSRT2024} in the original example to Rust, trying to follow as much as possible the original code structure.
-By scaling this parameter, we can adjust the worst-case execution 
-time (WCET) of each task, creating different system utilization 
-levels. For instance, doubling the workload parameter approximately doubles the 
+The combination of those types of instructions was obtained from statistical
+analysis of common scientific programs at the time of writing of the original
+paper \cite{curnowSyntheticBenchmark1976}. In this way, they could obtain a
+computational workload that was representative for benchmarking, enabling
+abstraction from the specific hardware implementation and providing a
+machine-independent measure of computational load through the \textit{Whetstone
+Instructions Per Second} (WIPS) metric.
+We have ported the \textit{Ada} implementation provided in the original example
+\cite{huJiayihuSRT2024} to \textit{Rust}, trying to follow as much as possible 
+the original code structure.
+By scaling this parameter, we can adjust the worst-case execution time (WCET) of
+each task, creating different system utilization levels. 
+For instance, doubling the workload parameter approximately doubles the  
 execution time, allowing us to systematically stress-test the system. This parametric 
 approach enables controlled experimentation where we can observe how the system 
 behavior changes as computational load increases, first by simulating it using 

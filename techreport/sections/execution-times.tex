@@ -89,15 +89,23 @@ compiled in \textit{release} mode (i.e. with all optimizations enabled), and run
 on the board at maximum clock speed (\unit[168]{MHz}). 
 
 We have observed some significant differences in execution times for certain
-operations between the Ada and Rust system. We ascribe these gaps to differences
-in I/O backends and runtime overheads, since RTIC heavily relies on hardware
-features specific to ARM Cortex architecture, to compiler choices, and different
-math libraries. 
+operations between the \textit{Ada} and \textit{Rust} system. We ascribe these
+gaps to differences in I/O backends and runtime overheads, since \textit{RTIC}
+heavily relies on hardware features specific to ARM Cortex architecture, to
+compiler choices, and different math libraries. 
 
-In particular, we have observed a very large difference in the execution times of the Whetstone procedure in favor of the Ada implementation. For the Rust implementation we have used a math library (libm), which is purely written in Rust and meant to become the reference implementation for the Rust compiler. At the current development stage though, it is not very optimized and more intended to be used as a fallback, rather than the actual library.
-On the other hand Ada (in its GNAT distribution) has a more mature and optimized implementation, which has been tested on the field for many years now.
+In particular, we have observed a very large difference in the execution times
+of the Whetstone procedure in favor of the \textit{Ada} implementation. For the
+\textit{Rust} implementation we have used a math library (\textit{libm}), which
+is purely written in \textit{Rust} and meant to become the reference
+implementation for the \textit{Rust} compiler. At the current development stage
+though, it is not very optimized and more intended to be used as a fallback,
+rather than the actual library.  
+On the other hand \textit{Ada} (in its GNAT distribution) has a more mature and
+optimized implementation, which has been tested on the field for many years now. 
 
-This may partially explain the large gap in execution times between the two systems.
+This may partially explain the large gap in execution times between the two
+systems. 
 
 \subsubsection{Activation Log Reader}
 \begin{table}[H]

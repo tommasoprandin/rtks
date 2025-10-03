@@ -199,10 +199,11 @@ straightforward. \\
 Besides the simplicity of implementation, this approach was chosen to avoid the 
 runtime cost of managing a pool of deadlines and 
 \texttt{deadline\_protected\_object}s at each deadline check.  
-In fact, an alternative implementation would require identifying the earliest
-next deadline among all the monitored ones at each deadline check, in order to
-delay its execution accordingly. This operation is also needed at every task
-activation, since it could introduce a new earliest deadline. \\
+In fact, an alternative implementation of a single watchdog would require
+identifying the earliest next deadline among all the monitored ones at each
+deadline check, in order to delay its execution accordingly. 
+This operation is also needed at every task activation, since it could introduce
+a new earliest deadline. \\ 
 Even if we could optimize this operation by using an appropriate data structure,
 such as a min-heap, the one-to-one mapping approach, instead, allows to manage
 each watchdog independently, without the need of any search, insert or
@@ -230,8 +231,8 @@ carefully against the runtime cost of a single watchdog implementation.
 
 \section{How we assign priorities in the system?}
 The priority assignment in our system is intended to enable high system
-utilization while ensuring feasibility, i.e., all tasks meet their deadlines on
-time.
+utilization while ensuring feasibility (i.e., all tasks meet their deadlines on
+time), under \textit{Fixed-Priority Preemptive Scheduling (FPPS)}. \\
 
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
@@ -285,9 +286,10 @@ According to these relationships and on the task time parameters reported in Tab
   \texttt{activation\_log\_reader} is dispatched. It's important to note that
   this constraint is valid only because there is a \texttt{regular\_producer}
   job activating both tasks (as described in the \textit{Technical Report},
-  section 7.2 \cite{TechnicalReport}), otherwise would just be sufficient to
-  have a priority lower than \texttt{regular\_producer}'s one since there would
-  not be any interference between the two tasks.
+  section 7.2 \cite{TechnicalReport}). Otherwise, it would just be sufficient to
+  have a priority lower than \texttt{regular\_producer}'s one, since there would
+  not be any interference between \texttt{on\_call\_producer} and \\
+  \texttt{activation\_log\_reader}.
 \end{itemize}
 The principle underlying these constraints is to ensure that tasks with shorter
 relative deadlines are given higher priorities (as in \textit{Deadline Monotonic}
