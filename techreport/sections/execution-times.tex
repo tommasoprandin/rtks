@@ -96,11 +96,11 @@ compiler choices, and different math libraries.
 
 In particular, we have observed a very large difference in the execution times
 of the Whetstone procedure in favor of the \textit{Ada} implementation. For the
-\textit{Rust} implementation we have used a math library (\textit{libm}), which
+\textit{Rust} implementation we have used a math library (\textit{libm}) which
 is purely written in \textit{Rust} and meant to become the reference
 implementation for the \textit{Rust} compiler. At the current development stage
-though, it is not very optimized and more intended to be used as a fallback,
-rather than the actual library.  
+though, it is not very optimized, and it is more intended to be used as a fallback,
+rather than as a production-grade library.  
 On the other hand \textit{Ada} (in its GNAT distribution) has a more mature and
 optimized implementation, which has been tested on the field for many years now. 
 
