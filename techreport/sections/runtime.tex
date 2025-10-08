@@ -16,12 +16,13 @@ in its usage or analysis, instead of dispersing them across multiple projects.
 
 Thus, when designing and implementing a real-time system in \textit{Rust}, some
 effort must be spent in order to identify and integrate the most appropriate
-runtime components for the system, paying attention to select compatible components
-that can work in harmony together i.e. with compatible APIs and functioning in
-the chosen runtime environment. In our case this means choosing a
-\textit{concurrency runtime} that provides the task abstraction and scheduling 
-primitives, a \textit{logging framework} and a \textit{Hardware Abstraction
-Layer} that provides higher-level abstractions over the system hardware. 
+runtime components for the system, paying attention to select compatible
+components that can work in harmony together \label{lab:harmony-definition}
+i.e. with compatible APIs and functioning in the chosen runtime
+environment. In our case this means choosing a \textit{concurrency runtime}
+that provides the task abstraction and scheduling primitives, a \textit{logging
+framework} and a \textit{Hardware Abstraction Layer} that provides higher-level
+abstractions over the system hardware.  
 
 \subsection{RTIC} \label{subsec:rtic}
 
@@ -38,11 +39,14 @@ access management \cite{bakerStackbasedSchedulingRealtime1991}, with
 \textit{SRP} has some really useful runtime properties for real-time systems,
 both for performance and especially for amenability to response-time analysis.
 Some of those properties are: 
+\label{lab:rtic-properties}
 \begin{itemize}
-  \item Bounded priority inversion blockage by the longest critical section of a lower priority job;
+  \item Bounded priority inversion blockage by the longest critical section
+  of a lower priority job; 
   \item Absence of circular-wait deadlocks;
   \item Tasks may utilize a single shared stack;
-  \item Tasks are guaranteed to have wait-free access to all the resources they need after release;
+  \item Tasks are guaranteed to have wait-free access to all the resources
+  they need after release. 
 \end{itemize}
 Those come with the following set of requirements:
 \begin{itemize}
@@ -64,7 +68,7 @@ OS: it requires the resource dependency graph to be known statically, which is
 generally not possible. In addition to this, the protocol has a runtime cost
 associated to every resource access and release, that involves updating the
 current system ceiling $\pi_s(t)$; and also at every job release to compare its
-priority against the system ceiling. 
+priority against the system ceiling. \label{lab:srp-in-general-purpose-os}
 
 \textit{FPS} is a very simple scheduling policy: every task is statically given
 a fixed priority value (values must have an order), and all jobs released will
@@ -127,9 +131,11 @@ violations of the strict LIFO requirement on resource usage mandated by
 applies to statically analyzed code; externally compiled procedures can bypass
 this verification. The support for this style of programming simplifies the
 development of complex tasks by automatically managing state transitions between
-suspension points, eliminating the need for manual state machine implementations
+suspension points, eliminating the need for manual state machine implementation
 when handling multi-stage operations, such as inter-task communication and
 hardware interactions. 
+\label{lab:compiler-checks-on-await}
+
 \subsection{Defmt}
 
 The second piece of the system is \textit{defmt} \cite{IntroductionDefmtBook}:

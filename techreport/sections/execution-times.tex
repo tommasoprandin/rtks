@@ -3,7 +3,7 @@
 \subsection{Rust}
 
 Obtaining the \textit{Worst-Case Execution Times} for every operation identified
-in the analysis of the system is a crucial step in order to perform
+in the analysis of the system is a crucial step in order to perform 
 response-time analysis.  
 
 We decided to leverage the \textit{Data Watchpoint and Trace Unit (DWT)}
@@ -93,19 +93,19 @@ operations between the \textit{Ada} and \textit{Rust} system. We ascribe these
 gaps to differences in I/O backends and runtime overheads, since \textit{RTIC}
 heavily relies on hardware features specific to ARM Cortex architecture, to
 compiler choices, and different math libraries. 
-
+\label{lab:wcet-differences-ada-rust}
 In particular, we have observed a very large difference in the execution times
 of the Whetstone procedure in favor of the \textit{Ada} implementation. For the
-\textit{Rust} implementation we have used a math library (\textit{libm}), which
+\textit{Rust} implementation we have used a math library (\textit{libm}) which
 is purely written in \textit{Rust} and meant to become the reference
 implementation for the \textit{Rust} compiler. At the current development stage
-though, it is not very optimized and more intended to be used as a fallback,
-rather than the actual library.  
+though, it is not very optimized, and it is more intended to be used as a fallback,
+rather than as a production-grade library.
 On the other hand \textit{Ada} (in its GNAT distribution) has a more mature and
 optimized implementation, which has been tested on the field for many years now. 
 
 This may partially explain the large gap in execution times between the two
-systems. 
+systems.
 
 \subsubsection{Activation Log Reader}
 \begin{table}[H]

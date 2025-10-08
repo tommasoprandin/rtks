@@ -8,7 +8,7 @@ and then obtain the values that make the system fail to meet its deadlines
 (\textit{sensitivity analysis}). The latter experiments were only performed on
 the Rust system. 
 
-\subsubsection{Holistic Analysis}
+\subsection{Holistic Analysis}
 
 From the holistic analysis, we obtained the workloads reported in Table
 [\ref{tab:exp-holistic-baseline}] that maximize the system utilization. 
@@ -114,9 +114,23 @@ The sensitivity analysis produced the values in Table [\ref{tab:exp-offset-sensi
   \label{tab:exp-offset-sensitivity}
 \end{table}
 
+\label{lab:exp-offset-sensitivity-discussion}
 This time, results were slightly more distant from the ones obtained from static
-analysis. This could be due to an overestimation of the WCET of system and
-operation overhead. 
+analysis. This is due to the fact that the offset-based analysis considers a
+possible scenario that is not observable in our implementation. 
+In a real system, the \texttt{External\_Event\_Server}, which has the
+responsibility for managing an external event that can arrive with a minimum
+inter-arrival time, is a sporadic task that can cause interference to the
+\texttt{Regular\_Producer}, the \texttt{Activation\_Log\_Reader} and the
+\texttt{On\_Call\_Producer}, depending on when the external event occures.
+Since, in our implementation, we simulated the worst-case event triggering through
+a periodic task (with period equal to the minimum inter-arrival time of the
+server), and this task starts at the system activation instant, the
+\texttt{External\_Event\_Server} is only able to cause interference to the
+\texttt{Regular\_Producer} jobs, leaving the other two tasks unaffected. 
+For this reason, the \texttt{On\_Call\_Producer} and/or the
+\texttt{Activation\_Log\_Reader} can sustain a higher workload on board
+experiments than the one highlited by the offset-based analysis.
 
 Nonetheless, results still follow a consistent behavior when overload is
 reached, with the lowest priority jobs suffering from interference and incurring

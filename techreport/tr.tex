@@ -35,6 +35,7 @@
 \usepackage{units}
 \usepackage{adjustbox}
 \usepackage{hyperref}
+\usepackage{xcolor,soul}
 
 %% Rights management information.  This information is sent to you
 %% when you complete the rights form.  These commands have SAMPLE
@@ -198,6 +199,34 @@
 %% This command processes the author and affiliation and title
 %% information and builds the first part of the formatted document.
 \maketitle
+
+\begin{table}[h]
+  \centering
+  \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lc}
+      \toprule
+      \textbf{Description of changes} & \textbf{Reference} \\
+      \midrule
+      Improve Whetstone explanation.                                            & \ref{lab:whetstone-explanation} \\
+      Improve Deadline Watchdog task description.                               & \ref{lab:deadline-watchdog-task} \\
+      Provide harmony definition.                                               & \ref{lab:harmony-definition} \\ 
+      Improve RTIC properties.                                                  & \ref{lab:rtic-properties} \\
+      Improve explanation regarding why SRP is not used in general-purpose OS.  & \ref{lab:srp-in-general-purpose-os} \\
+      Provide explanation about compiler checks on await operations while
+      holding a resource.                                                       & \ref{lab:compiler-checks-on-await} \\
+      Provide explanation about differences in WCET between Ada and Rust for
+      Whetstone operation.                                                      & \ref{lab:wcet-differences-ada-rust} \\
+      Improve priority assignment explanation.                                  & \ref{lab:priority-assignment} \\
+      Improve the explanation of the 90 increase factor.                        & \ref{lab:90-increase-factor} \\
+      Improve the description of the optimization problem model.                & \ref{lab:optimization-problem-model} \\
+      Explanation of the discrepancy between the sensitivity analysis and the
+      offset-based results.                                                     & \ref{lab:exp-offset-sensitivity-discussion} \\
+      Conclusions regarding shared resource management in different systems.    & \ref{lab:shared-resource-management-conclusions} \\
+      \bottomrule
+    \end{tabular}
+  }
+  \caption{Change Log}
+\end{table}
 
 \input{sections/introduction.tex} 
 

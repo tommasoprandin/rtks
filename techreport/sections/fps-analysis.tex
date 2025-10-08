@@ -5,11 +5,11 @@ of the system.
 The analysis was performed by modeling the system through a
 \textit{MAST} model, which was then analyzed using the \textit{MAST} tool to verify
 the timing properties and to analyze the system under different workloads.
-
+\label{lab:priority-assignment}
 Priority assignment was done by ensuring that tasks with shorter relative
 deadlines are given higher priorities, as in the \textit{Deadline Monotonic}
 scheme, while also accounting for task relationships, since tasks in the system
-do not have implicit deadlines and presents some precedence relationships 
+do not have implicit deadlines and presents some precedence relationships
 (further details can be found in the \textit{Integration Report}
 \cite{IntegrationReport}). 
 
@@ -214,8 +214,9 @@ Based on these results, since the smallest available slack was 8808.2\% for the
 \texttt{rp\_transaction}, we increased the workloads by a factor of 90 to
 reduce it significantly. We chose a factor of 90 instead of 88 by the fact that
 the \textit{Small Whetstone} operation represent only a part of the transaction
-rather than the entire \texttt{rp\_transaction}. The updated results are
-reported in Table [\ref{tab:holistic-analysis-ada-x88}].  
+rather than the entire \texttt{rp\_transaction}.
+\label{lab:90-increase-factor}
+The updated results are reported in Table [\ref{tab:holistic-analysis-ada-x88}].  
 
 \begin{table}[H]
   \resizebox{\linewidth}{!}{%
@@ -393,7 +394,8 @@ The problem can now be expressed as the following linear optimization problem:
                       & x + y \leq \text{T} \\
                       & x \geq \text{WCET \texttt{on\_call\_producer} with worklaod 1} \\
                       & y \geq \text{WCET \texttt{activation\_log\_reader} with workload 1} 
-\end{align*}
+\end{align*} 
+\label{lab:optimization-problem-model}
 For both systems, the solution to this linear optimization is \\
 $x$ = \textit{\texttt{on\_call\_producer} with worklaod 1}, with $y$ that fills
 the remaining available time slot in $T$, resulting in 0.49948648 - 0.00004456 =
